@@ -454,8 +454,8 @@ bool mainui_wait_event(MainUIApp *ui, SDL_Event *event)
     else if (ui->input_script && *ui->input_script) {
         scripted_event = true;
         event->type = SDL_KEYDOWN;
-        /* Y acts on release: alone it is a tap (press and release); +
-         * presses it only, - releases any key. */
+        /* Y, Select and Start act on release: alone they are a tap (press
+         * and release); + presses them only, - releases any key. */
         bool hold = *ui->input_script == '+';
         if (*ui->input_script == '-') {
             event->type = SDL_KEYUP;
@@ -469,7 +469,9 @@ bool mainui_wait_event(MainUIApp *ui, SDL_Event *event)
         if (*ui->input_script) {
             ui->input_script++;
         }
-        if (event->type == SDL_KEYDOWN && !hold && event->key.keysym.sym == SDLK_LALT) {
+        if (event->type == SDL_KEYDOWN && !hold &&
+            (event->key.keysym.sym == SDLK_LALT || event->key.keysym.sym == SDLK_RCTRL ||
+             event->key.keysym.sym == SDLK_F2)) {
             ui->script_release = event->key.keysym.sym;
         }
         if (event->key.keysym.sym == SDLK_UNKNOWN) {

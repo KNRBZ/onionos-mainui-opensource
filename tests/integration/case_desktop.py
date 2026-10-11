@@ -44,6 +44,13 @@ for key in 'XYTM':
     assert capture('button-' + key, key) == home
 assert capture('popup-start', 'ST') == capture('button-S', 'S')
 assert capture('popup-select-close', 'SS') == home
+# Select opens it when released, as with stock and keymon, and not when
+# another key went down meanwhile: Select with L2 or R2 is brightness,
+# Select, Start and L1 or R1 the CPU clock.
+assert capture('select-held', '+S') == home
+assert capture('select-released', '+S-S') == capture('button-S', 'S')
+assert capture('select-r2', '+S4-S') == capture('r2', '4')
+assert capture('select-start-r1', '+S+T2-S') == capture('start-r1', 'T2')
 for key in 'SXYTM': assert home == capture('button-return-'+key,key+'B')
 apps = capture('apps','RE')
 assert apps != home

@@ -50,10 +50,12 @@ typedef struct {
      * release; that release must not open the context menu again. */
     bool select_menu_pending;
     Uint32 select_menu_until;
-    /* Y acts when released, as in stock, so a keymon shortcut on Y has
-     * killed MainUI before it acts: whether the press is still to act. */
-    bool y_armed;
-    /* The release of a scripted Y tap, still to send. */
+    /* Y, Select and Start act when released, as in stock, so a keymon
+     * shortcut on Y has killed MainUI before it acts: whether the press is
+     * still to act. A keymon combo (another button while Select or Start
+     * is down) cancels Select and Start. */
+    bool y_armed, select_armed, start_armed;
+    /* The release of a scripted Y, Select or Start tap, still to send. */
     SDLKey script_release;
     /* Keymon's L1 after its Menu release: the Menu releases already matched
      * or passed over, and whether that L1 is down now. */

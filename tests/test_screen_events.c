@@ -30,6 +30,12 @@ static bool key_event(MainUIApp *ui, Uint8 type, SDLKey key, Uint16 unicode)
     return mainui_dispatch_event(ui, &event);
 }
 
+/* Select and Start act when released. */
+static bool tap(MainUIApp *ui, SDLKey key)
+{
+    return key_event(ui, SDL_KEYDOWN, key, 0) && key_event(ui, SDL_KEYUP, key, 0);
+}
+
 static void home_and_popups(MainUIApp *ui)
 {
     reset(ui);
@@ -46,9 +52,20 @@ static void home_and_popups(MainUIApp *ui)
     ui->context = ui->home_context;
     ui->context_open = true;
     assert(key_event(ui, SDL_KEYDOWN, SDLK_RCTRL, 0));
+    assert(ui->context_open); /* not before the release */
+    assert(key_event(ui, SDL_KEYUP, SDLK_RCTRL, 0));
     assert(!ui->context_open && ui->confirmation == -1);
     assert(ui->home_view.selected == 2 && ui->running);
+    /* A release after focus was lost is no press: SDL may have lost
+     * either event. */
     assert(key_event(ui, SDL_KEYDOWN, SDLK_RCTRL, 0));
+    SDL_Event lost = {0};
+    lost.type = SDL_ACTIVEEVENT;
+    lost.active.state = SDL_APPINPUTFOCUS;
+    assert(mainui_dispatch_event(ui, &lost));
+    assert(key_event(ui, SDL_KEYUP, SDLK_RCTRL, 0));
+    assert(!ui->context_open);
+    assert(tap(ui, SDLK_RCTRL));
     assert(ui->context_open);
     assert(key_event(ui, SDL_KEYDOWN, SDLK_RETURN, 0));
     assert(!ui->context_open && ui->confirmation == CONTEXT_SHUTDOWN);
@@ -89,7 +106,7 @@ static void start_is_consumed(MainUIApp *ui)
         default:
             break;
         }
-        assert(key_event(ui, SDL_KEYDOWN, SDLK_F2, 0));
+        assert(tap(ui, SDLK_F2));
         assert(ui->running && !ui->launch_pending && !ui->catalog_job.thread);
         assert(ui->home_view.selected == 1 && ui->view.selected == 1);
         assert(ui->context_open == (screen == 3));
