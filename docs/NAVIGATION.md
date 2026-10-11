@@ -10,6 +10,8 @@ At start, as stock does, MainUI hands the `keymap` in `system.json` (default `L2
 
 X acts as B (back, close, cancel) on every screen, as stock does; in the on-screen keyboard it types a space. Search in a ROM list is in the context menu (Select or Menu). A shortcut set for X in Tweaks (Button shortcuts > MainUI: X button) is run by Onion's keymon instead.
 
+A main-menu tab Onion leaves in `/tmp/state.json` opens when MainUI starts, as with stock: at boot the startup tab set in Tweaks (Recents, Favorites, Games, Expert or Apps), and Expert for Onion's Expert app (Expert in Apps, or Expert set as the X or Y shortcut in Tweaks), also after a return from Apps, where MainUI would otherwise reopen Apps. A tab opens also when it is hidden on the main menu, and B goes back to the main menu with that tab selected. As stock does, MainUI removes `state.json` once it has read it, so a later start without a new one, such as after keymon's GameSwitcher, is on the main menu; stock opens the main menu there too.
+
 ## Console grids
 
 The Games grid shows 4 columns by 2 rows per page, the Expert grid 3 by 3.

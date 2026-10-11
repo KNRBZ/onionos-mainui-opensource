@@ -35,6 +35,7 @@ def launched(actions):
     """The command the actions left for runtime.sh, or None."""
     unlink_if_exists(COMMAND)
     unlink_if_exists(HANDOFF / "mainui-return.json")
+    unlink_if_exists(HANDOFF / "state.json")  # MainUI removes it on a return
     subprocess.run([str(BUILD / "MainUI-dev"), "--sd-root", str(SD), "--theme", str(ONION_THEME),
                     "--input", actions, "--snapshot", str(OUT / "shot.bmp"),
                     "--handoff-dir", str(HANDOFF)],
