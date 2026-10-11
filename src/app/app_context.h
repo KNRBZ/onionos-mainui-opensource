@@ -50,6 +50,8 @@ typedef struct {
      * release; that release must not open the context menu again. */
     bool select_menu_pending;
     Uint32 select_menu_until;
+    /* L2 or R2 went down while Select was held and Start was not. */
+    bool select_brightness;
     /* Y, Select and Start act when released, as in stock, so a keymon
      * shortcut on Y has killed MainUI before it acts: whether the press is
      * still to act. A keymon combo (another button while Select or Start

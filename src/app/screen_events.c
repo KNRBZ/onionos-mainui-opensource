@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 bool mainui_launch_tool(const char *directory, const char *sd, const MainUILaunchSource *source,
                         const char *label, const char *launch, int type, char error[256])
@@ -1214,6 +1215,21 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
     mainui_screen_list_key(ui, key);
 }
 
+/* Keymon sends no Menu after Select with L2 or R2 (Start not held) where
+ * that is its brightness combo: on any model but the Plus (354) and Flip
+ * (285), as keymon tells them apart, unless .altBrightness moves brightness
+ * to Menu with Up or Down. Everywhere else it does. */
+static bool keymon_brightness_combo(const MainUIApp *ui)
+{
+    char flag[MAINUI_PATH_MAX + 16];
+    int model = ui->device_status.model.id;
+    return model != 285 && model != 354 &&
+           (!*ui->default_config ||
+            snprintf(flag, sizeof flag, "%s/.altBrightness", ui->default_config) >=
+                (int)sizeof flag ||
+            access(flag, F_OK) != 0);
+}
+
 /* A release of Menu opens the context menu, as Select does and as stock does
  * for keymon's "Context menu" long press. It never closes the menu: after a
  * long press the physical release follows the one keymon sent. */
@@ -1300,6 +1316,7 @@ bool mainui_dispatch_event(MainUIApp *ui, SDL_Event *event)
         memset(ui->held, 0, sizeof ui->held);
         /* Their releases would be taken for presses. */
         ui->y_armed = ui->select_armed = ui->start_armed = false;
+        ui->select_brightness = false;
         ui->letter_jump.active = false;
         ui->confirmation = -1;
         ui->return_latched = false;
@@ -1309,9 +1326,14 @@ bool mainui_dispatch_event(MainUIApp *ui, SDL_Event *event)
         if (released >= 0 && released < SDLK_LAST) {
             ui->held[released] = false;
         }
+        /* Keymon's Menu after a Select release is ignored, but only when it
+         * sends one: else a real Menu shortly after would be. */
         if (released == SDLK_RCTRL && ui->real_device) {
-            ui->select_menu_pending = true;
+            ui->select_menu_pending = !(ui->select_brightness && keymon_brightness_combo(ui));
             ui->select_menu_until = SDL_GetTicks() + 1500;
+        }
+        if (released == SDLK_RCTRL) {
+            ui->select_brightness = false;
         }
         /* On the device Menu releases come from platform/menu_button.c,
          * which also sees the lone release SDL drops. */
@@ -1375,6 +1397,14 @@ bool mainui_dispatch_event(MainUIApp *ui, SDL_Event *event)
         (ui->held[SDLK_RCTRL] && key != SDLK_RCTRL) || (ui->held[SDLK_F2] && key != SDLK_F2);
     if (event->type == SDL_KEYDOWN && combo) {
         ui->select_armed = ui->start_armed = false;
+        if (ui->held[SDLK_RCTRL] && !ui->held[SDLK_F2] && (key == SDLK_HOME || key == SDLK_END)) {
+            ui->select_brightness = true;
+        }
+        /* Held as keymon sees it: Start pressed during Select makes L2 or
+         * R2 its volume, not brightness. */
+        if (key > 0 && key < SDLK_LAST) {
+            ui->held[key] = true;
+        }
         return true;
     }
     if (event->type == SDL_KEYDOWN && armed) {
