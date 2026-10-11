@@ -138,6 +138,7 @@ bool mainui_poll_jobs(MainUIApp *ui)
             }
         }
         ui->theme.wifi_online = ui->device_status.wifi == 1;
+        ui->theme.hotspot_on = ui->device_status.hotspot == 1;
         ui->theme.wifi_signal_level = ui->device_status.wifi_signal;
         snprintf(ui->theme.wifi_address, sizeof ui->theme.wifi_address, "%s",
                  ui->device_status.wifi == 1 ? ui->device_status.address : "");

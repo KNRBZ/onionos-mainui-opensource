@@ -429,6 +429,26 @@ MainUIDeviceStatus mainui_device_status(const MainUIDeviceAdapter *adapter)
             status.sleeping = sleeping;
         }
     }
+    /* Onion's hotspot runs hostapd with -P /var/run/hostapd.pid; stock tells
+     * it by the hostapd process and shows skin/icon-hotspot-wifi.png. */
+    if (status.model.wifi) {
+        if (adapter->backend == DEVICE_SIMULATED) {
+            status.hotspot = runtime_number(adapter, "hotspot") == 1;
+        }
+        else {
+            int pid = number("/var/run/hostapd.pid");
+            char comm[64], name[32] = "";
+            snprintf(comm, sizeof comm, "/proc/%d/comm", pid);
+            FILE *file = pid > 1 ? fopen(comm, "r") : NULL;
+            if (file) {
+                if (fgets(name, sizeof name, file)) {
+                    name[strcspn(name, "\r\n")] = 0;
+                }
+                fclose(file);
+            }
+            status.hotspot = !strcmp(name, "hostapd");
+        }
+    }
     if (status.model.wifi) {
         char file[4096];
         char *text = path(file, adapter, "wifi-status.txt") ? mainui_read_text(file, 16384) : NULL;

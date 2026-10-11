@@ -13,6 +13,7 @@ typedef struct {
     int wifi_signal;         /* Stock level: 0 unknown, 1 weak, 2 medium, 3 strong. */
     int battery;             /* -1 unavailable, 0..100 percent, 500 charging */
     int wifi, lid, sleeping; /* -1 unknown; otherwise 0/1 */
+    int hotspot;             /* 1 when Onion's hotspot (hostapd) runs, else 0 */
     char address[64], ssid[33];
 } MainUIDeviceStatus;
 
