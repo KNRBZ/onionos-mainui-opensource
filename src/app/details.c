@@ -81,8 +81,13 @@ bool mainui_details_open(MainUIDetails *details, MainUICatalog *catalog,
             break;
         }
     }
-    /* Saved games can belong to a system outside the currently active catalog. */
+    /* Saved games can belong to a system outside the currently active catalog
+     * (an Expert emulator while Games is open): its launcher's config.json
+     * names the system and, by its rompath, the folder its gamelist.xml may
+     * be in, as for a system in the catalog. */
+    char saved_root[MAINUI_PATH_MAX];
     if (library && !*details->system) {
+        root = NULL;
         const MainUILibraryItem *item = &library->items[library->visible[row]];
         char launcher[MAINUI_PATH_MAX], config[MAINUI_PATH_MAX];
         if (item->launch && mainui_catalog_path(launcher, catalog->sd, catalog->sd, item->launch)) {
@@ -96,6 +101,14 @@ bool mainui_details_open(MainUIDetails *details, MainUICatalog *catalog,
                     if (cJSON_IsString(system_label)) {
                         snprintf(details->system, sizeof details->system, "%s",
                                  system_label->valuestring);
+                    }
+                    const cJSON *roms = cJSON_GetObjectItemCaseSensitive(json, "rompath");
+                    size_t length = 0;
+                    if (cJSON_IsString(roms) && *roms->valuestring &&
+                        mainui_catalog_path(saved_root, catalog->sd, launcher, roms->valuestring) &&
+                        (length = strlen(saved_root)) > 0 && !strncmp(host, saved_root, length) &&
+                        host[length] == '/') {
+                        root = saved_root;
                     }
                     cJSON_Delete(json);
                     free(text);
