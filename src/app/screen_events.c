@@ -1298,6 +1298,7 @@ bool mainui_dispatch_event(MainUIApp *ui, SDL_Event *event)
         /* Lost keyup events must not leave a modifier/chord stuck after Alt-Tab.
          * A pending confirmation is cancelled: its key state is unknown now. */
         memset(ui->held, 0, sizeof ui->held);
+        ui->y_armed = false; /* its release would be taken for a press */
         ui->letter_jump.active = false;
         ui->confirmation = -1;
         ui->return_latched = false;
@@ -1327,6 +1328,7 @@ bool mainui_dispatch_event(MainUIApp *ui, SDL_Event *event)
         return true;
     }
     if (ui->catalog_job.thread) {
+        ui->y_armed = false;
         if (event->type == SDL_KEYUP && mainui_input_key(event->key.keysym.sym) == SDLK_RETURN) {
             ui->search_confirm_held = false;
         }
@@ -1344,6 +1346,27 @@ bool mainui_dispatch_event(MainUIApp *ui, SDL_Event *event)
     if (event->type == SDL_KEYUP && ui->search.release_pending &&
         mainui_input_key(event->key.keysym.sym) == SDLK_RETURN) {
         ui->search.release_pending = false;
+        return true;
+    }
+    /* Y acts when released, as stock acts on A, B, X, Y, Select, Start and
+     * Menu. Keymon runs a Tweaks shortcut on Y by killing MainUI as Y goes
+     * down; acting on the press as well could launch the game Y is on, or
+     * at least put it first in Recents. */
+    SDLKey key = mainui_input_key(event->key.keysym.sym);
+    if (event->type == SDL_KEYUP && key == SDLK_LALT && ui->y_armed) {
+        ui->y_armed = false;
+        SDL_Event press = *event;
+        press.type = SDL_KEYDOWN;
+        press.key.state = SDL_PRESSED;
+        dispatch_key(ui, &press);
+        ui->held[key] = false;
+        return true;
+    }
+    if (event->type == SDL_KEYDOWN && key == SDLK_LALT) {
+        if (!ui->held[key]) {
+            ui->y_armed = true;
+        }
+        ui->held[key] = true;
         return true;
     }
     if (event->type == SDL_KEYDOWN) {

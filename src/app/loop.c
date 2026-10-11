@@ -445,17 +445,32 @@ bool mainui_wait_event(MainUIApp *ui, SDL_Event *event)
     else if (ui->input_script && ui->letter_jump.active) {
         event->type = SDL_USEREVENT;
     }
+    else if (ui->input_script && ui->script_release) {
+        scripted_event = true;
+        event->type = SDL_KEYUP;
+        event->key.keysym.sym = ui->script_release;
+        ui->script_release = SDLK_UNKNOWN;
+    }
     else if (ui->input_script && *ui->input_script) {
         scripted_event = true;
         event->type = SDL_KEYDOWN;
+        /* Y acts on release: alone it is a tap (press and release); +
+         * presses it only, - releases any key. */
+        bool hold = *ui->input_script == '+';
         if (*ui->input_script == '-') {
             event->type = SDL_KEYUP;
+            ui->input_script++;
+        }
+        else if (hold) {
             ui->input_script++;
         }
         event->key.keysym.sym =
             *ui->input_script == 'C' ? SDLK_ESCAPE : mainui_input_script(*ui->input_script);
         if (*ui->input_script) {
             ui->input_script++;
+        }
+        if (event->type == SDL_KEYDOWN && !hold && event->key.keysym.sym == SDLK_LALT) {
+            ui->script_release = event->key.keysym.sym;
         }
         if (event->key.keysym.sym == SDLK_UNKNOWN) {
             fprintf(stderr, "Invalid --input action\n");

@@ -83,6 +83,9 @@ original = "".join(json.dumps(dict(
     label=f"G{i:02}", rompath=f"/mnt/SDCARD/Roms/C/G{i:02}.nes",
     launch="/mnt/SDCARD/Emu/C/launch.sh", type=5)) + "\n" for i in range(3))
 RECENT.write_text(original)
+# Y acts when released, as stock does: keymon runs a Y shortcut as Y goes
+# down by killing MainUI, which must not launch the game or touch Recents.
+assert launched("ED+Y") is None and RECENT.read_text() == original
 command = launched("EDY")
 assert command and b"G01.nes" in command, command
 first, rest = RECENT.read_text().split("\n", 1)

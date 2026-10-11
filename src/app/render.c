@@ -672,8 +672,8 @@ static bool compose_full_frame(MainUIApp *ui)
     }
     if (ui->snapshot && !ui->catalog_job.thread && !ui->device_job.thread &&
         !(ui->about_visible && ui->about_job.thread) &&
-        (ui->launch_pending ||
-         (!ui->letter_jump.active && (!ui->input_script || !*ui->input_script)))) {
+        (ui->launch_pending || (!ui->letter_jump.active && !ui->script_release &&
+                                (!ui->input_script || !*ui->input_script)))) {
         if (SDL_SaveBMP(ui->screen, ui->snapshot) < 0) {
             fprintf(stderr, "Snapshot: %s\n", SDL_GetError());
             ui->status = 4;
