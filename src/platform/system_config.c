@@ -6,11 +6,62 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 static bool path_for(char path[4096], const char *sd, const char *suffix)
 {
     int n = snprintf(path, 4096, "%s/system.json%s", sd, suffix);
     return n > 0 && n < 4096;
+}
+
+MainUIYShortcut mainui_y_shortcut(const char *sd, char why[160])
+{
+    char path[4096], scratch[160];
+    why = why ? why : scratch;
+    *why = 0;
+    if (!sd ||
+        snprintf(path, sizeof path, "%s/.tmp_update/config/keymap.json", sd) >= (int)sizeof path) {
+        snprintf(why, 160, "the keymap path is too long");
+        return MAINUI_Y_NOTHING;
+    }
+    struct stat info;
+    if (stat(path, &info) != 0 && errno == ENOENT) {
+        return MAINUI_Y_AS_A; /* as keymon without the file */
+    }
+    if (stat(path, &info) == 0 && !S_ISREG(info.st_mode)) {
+        snprintf(why, 160, "keymap.json is not a file");
+        return MAINUI_Y_NOTHING;
+    }
+    errno = 0;
+    char *text = mainui_read_text(path, 64 * 1024);
+    if (!text) {
+        snprintf(why, 160, "keymap.json cannot be read: %s",
+                 errno ? strerror(errno) : "unreadable");
+        return MAINUI_Y_NOTHING;
+    }
+    cJSON *root = cJSON_Parse(text);
+    free(text);
+    if (!cJSON_IsObject(root)) {
+        cJSON_Delete(root);
+        snprintf(why, 160, "keymap.json is not a JSON object");
+        return MAINUI_Y_NOTHING;
+    }
+    const cJSON *y = cJSON_GetObjectItemCaseSensitive(root, "mainui_button_y");
+    MainUIYShortcut result = MAINUI_Y_NOTHING;
+    /* keymon keeps its empty default unless the value is text. */
+    if (!cJSON_IsString(y) || !*y->valuestring) {
+        result = MAINUI_Y_AS_A;
+    }
+    else if (cJSON_IsString(y) && !strcmp(y->valuestring, "glo")) {
+        result = MAINUI_Y_GAME_OPTIONS;
+    }
+    else {
+        /* An app or tool, which keymon runs (it missed this Y), or a value
+         * keymon does not know: starting the game would surprise. */
+        snprintf(why, 160, "the Y shortcut is %.60s, which keymon runs", y->valuestring);
+    }
+    cJSON_Delete(root);
+    return result;
 }
 
 cJSON *mainui_system_read(const char *sd)

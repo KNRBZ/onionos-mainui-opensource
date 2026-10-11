@@ -7,6 +7,19 @@
 /* Caller owns the object. A missing file yields an empty object; malformed or
  * unreadable input returns NULL, so it cannot be overwritten as an empty file. */
 cJSON *mainui_system_read(const char *sd);
+
+/* What Y on a game does, from the Y shortcut in .tmp_update/config/
+ * keymap.json, which keymon reads (Tweaks: Button shortcuts > MainUI: Y
+ * button). */
+typedef enum {
+    MAINUI_Y_AS_A,         /* no shortcut ("A button"): no file, no text value */
+    MAINUI_Y_GAME_OPTIONS, /* "glo": Onion's Game List Options */
+    MAINUI_Y_NOTHING       /* keymon's (an app or tool) or unknown: the file
+                            * cannot be read or parsed, or another value */
+} MainUIYShortcut;
+
+/* `why` (when not NULL) says why for MAINUI_Y_NOTHING. */
+MainUIYShortcut mainui_y_shortcut(const char *sd, char why[160]);
 bool mainui_system_write(const char *sd, const char *key, const cJSON *value);
 /* Numeric values also go to the live copy keymon keeps (the monitor), before
  * the file, since keymon writes that copy back to the file. When the file

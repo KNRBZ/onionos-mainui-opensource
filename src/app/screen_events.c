@@ -1123,10 +1123,15 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
         ui->letter_jump.active = false;
         return;
     }
-    /* Y on a game launches it as A does, as in stock: Onion's keymon sets
-     * /tmp/launch_alt on Y, and runtime.sh then opens Game List Options for
-     * the launched game instead of starting it (#14). On a folder or ".."
-     * Y does nothing. */
+    /* Y on a game launches it as A does, as in stock: with Game List Options
+     * set as the Y shortcut, Onion's keymon sets /tmp/launch_alt on Y, and
+     * runtime.sh then opens Game List Options for the launched game instead
+     * of starting it (#14). MainUI sets that flag too, as keymon skips it
+     * while its cached state does not say MainUI is running (after boot, or
+     * just after a game). With no Y shortcut, Y is A. With any other, or a
+     * keymap.json that cannot be read, Y does nothing (logged, no message):
+     * keymon runs an app or tool shortcut, and a game it did not mean to
+     * start must not. On a folder or ".." Y does nothing. */
     if (game_list && key == SDLK_LALT) {
         bool game = ui->view.selected >= 0 &&
                     (ui->library ? ui->view.selected < ui->library->visible_count &&
@@ -1134,8 +1139,14 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
                                  : ui->catalog && ui->catalog->depth && !*ui->catalog->error &&
                                        mainui_browser_index(ui->catalog, ui->view.selected) >= 0 &&
                                        !mainui_browser_folder(ui->catalog, ui->view.selected));
-        if (game && !was_held && ui->handoff_dir) {
-            ui->launch_source.alternate = true;
+        char why[160];
+        MainUIYShortcut shortcut =
+            game && !was_held && ui->handoff_dir ? mainui_y_shortcut(ui->sd, why) : MAINUI_Y_AS_A;
+        if (shortcut == MAINUI_Y_NOTHING) {
+            fprintf(stderr, "[launch] Y ignored: %s\n", why);
+        }
+        else if (game && !was_held && ui->handoff_dir) {
+            ui->launch_source.alternate = shortcut == MAINUI_Y_GAME_OPTIONS;
             ui->launch_pending =
                 mainui_session_launch(ui->handoff_dir, &ui->launch_source, NULL, ui->message_body);
             ui->launch_source.alternate = false;
