@@ -361,12 +361,20 @@ static bool wifi_dhcp(MainUICancel cancel, bool restart)
     else if (wifi_process("udhcpc", false)) {
         return true;
     }
-    /* Stock starts DHCP asynchronously with the default three 3-second tries.
-     * A fixed shell command keeps lease acquisition out of the status worker. */
-    char *arguments[] = {"/bin/sh", "-c",
-                         "command -v udhcpc >/dev/null || exit 1; "
-                         "udhcpc -i wlan0 -s /etc/init.d/udhcpc.script &",
-                         NULL};
+    /* Started with wpa_supplicant, before the network is joined, so the first
+     * requests go nowhere. BusyBox's defaults (three tries 3 s apart, then a
+     * 20 s pause) left a join slower than about 9 s without an address for
+     * 10-20 s more; a request every second for 10 s, then a 3 s pause, gets
+     * the lease within about a second of the join, where the udhcpc accepts
+     * these options (it lists them in its help); otherwise it starts as
+     * before. A fixed shell command keeps lease acquisition out of the
+     * status worker. */
+    char *arguments[] = {
+        "/bin/sh", "-c",
+        "command -v udhcpc >/dev/null || exit 1; "
+        "if udhcpc --help 2>&1 | grep -q -- '-A'; then set -- -T 1 -t 10 -A 3; fi; "
+        "udhcpc -i wlan0 -s /etc/init.d/udhcpc.script \"$@\" &",
+        NULL};
     return wifi_program(arguments, cancel);
 }
 
@@ -527,21 +535,26 @@ bool mainui_device_wifi_enable(MainUIDeviceAdapter *adapter, bool enabled, MainU
         snprintf(adapter->error, sizeof adapter->error, "Cannot prepare Wi-Fi configuration.");
         return false;
     }
+    /* wlan0 already there: the chip is on and its driver loaded. */
+    bool powered = access("/sys/class/net/wlan0", F_OK) == 0;
     char *power[] = {"/customer/app/axp_test", "wifion", NULL};
     if (!wifi_program(power, cancel)) {
         snprintf(adapter->error, sizeof adapter->error, "Could not power on Wi-Fi.");
         return false;
     }
-    /* Onion wifi_on waits two seconds for the radio/driver before ifconfig. */
-    for (int i = 0; i < 40 && !mainui_cancelled(cancel); ++i) {
+    /* wlan0 can take longer than Onion's two seconds to appear after a cold
+     * start: wait for it (at most 10 s), then one second, as stock does,
+     * unless the chip was on already. Like stock, wpa_supplicant brings
+     * wlan0 up itself; that joined faster on a noisy channel than Onion's
+     * wifi_on order (2 s, ifconfig up, wpa_supplicant). */
+    for (int i = 0; i < 200 && !mainui_cancelled(cancel) && access("/sys/class/net/wlan0", F_OK);
+         ++i) {
+        poll(NULL, 0, 50);
+    }
+    for (int i = 0; i < 20 && !powered && !mainui_cancelled(cancel); ++i) {
         poll(NULL, 0, 50);
     }
     if (mainui_cancelled(cancel)) {
-        return false;
-    }
-    char *up[] = {"ifconfig", "wlan0", "up", NULL};
-    if (!wifi_program(up, cancel)) {
-        snprintf(adapter->error, sizeof adapter->error, "Cannot bring wlan0 up.");
         return false;
     }
     if (!wifi_process("wpa_supplicant", false)) {
