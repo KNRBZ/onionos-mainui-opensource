@@ -32,7 +32,7 @@ A theme can set both game-list options in its top-level `config.json`:
 
 ## List colours
 
-All list rows, including the selected one, use `list.color`. `list.selectedcolor` has no effect on list rows in stock MainUI, with one exception: stock draws the first row of its Wi-Fi screen (the on/off toggle) in that colour. Open MainUI does not read `list.selectedcolor` at all, so its Wi-Fi toggle row uses `list.color` like every other row. Make sure `list.color` is readable on the selection background.
+All list rows, including the selected one, use `list.color`. `list.selectedcolor` has no effect on list rows in stock MainUI, with one exception: stock draws the first row of its Wi-Fi screen (the on/off toggle) in that colour. Open MainUI does not read `list.selectedcolor` at all, so its Wi-Fi toggle row uses `list.color` like every other row. This differs from stock on purpose: themes set `list.selectedcolor` without that one row in mind, and it can clash with the rest of the list. Make sure `list.color` is readable on the selection background.
 
 ## Background orientation
 
@@ -40,7 +40,7 @@ All list rows, including the selected one, use `list.color`. `list.selectedcolor
 
 ## Fonts and languages
 
-The theme's `font` entries are used in every language. The `fontascii` key that stock MainUI also reads is not supported; no theme in the Onion theme repository uses it.
+The theme's `font` entries are used in every language. Stock MainUI also reads `fontascii` keys; Open MainUI reads only `grid.fontascii`, for the Expert console labels (see below). No theme in the Onion theme repository sets any of them.
 
 If a theme font cannot be opened, Open MainUI falls back to a built-in font chosen by language, as stock does:
 

@@ -32,6 +32,26 @@ static bool folder(MainUICatalog *catalog, const MainUILibrary *library, int row
     return library ? mainui_library_is_folder(library, row) : mainui_browser_folder(catalog, row);
 }
 
+/* Runs of spaces, tabs and line breaks become one space; none lead or trail. */
+static void collapse_space(char *text)
+{
+    char *write = text;
+    bool space = false;
+    for (const char *read = text; *read; ++read) {
+        if (*read == ' ' || *read == '\n' || *read == '\r' || *read == '\t') {
+            space = write != text;
+        }
+        else {
+            if (space) {
+                *write++ = ' ';
+            }
+            *write++ = *read;
+            space = false;
+        }
+    }
+    *write = 0;
+}
+
 bool mainui_details_open(MainUIDetails *details, MainUICatalog *catalog,
                          const MainUILibrary *library, const MainUILibrary *favorites, int row,
                          MainUIPreview *preview)
@@ -125,22 +145,10 @@ bool mainui_details_open(MainUIDetails *details, MainUICatalog *catalog,
     details->favorite = mainui_library_contains(favorites, details->rom);
     cJSON_Delete(record);
     mainui_gamelist_metadata(host, root, &details->metadata);
-    /* Match the reference metadata parser's collapsed XML whitespace. */
-    char *write = details->metadata.description;
-    bool space = false;
-    for (const char *read = details->metadata.description; *read; ++read) {
-        if (*read == ' ' || *read == '\n' || *read == '\r' || *read == '\t') {
-            space = write != details->metadata.description;
-        }
-        else {
-            if (space) {
-                *write++ = ' ';
-            }
-            *write++ = *read;
-            space = false;
-        }
-    }
-    *write = 0;
+    /* Match the reference metadata parser's collapsed XML whitespace, also in
+     * the genre, where a line break would split the summary line. */
+    collapse_space(details->metadata.description);
+    collapse_space(details->metadata.genre);
     /* Select the cover without waiting: a cached one shows at once, any
      * other when its decode is done (mainui_details_progress). */
     details->catalog = catalog;

@@ -46,6 +46,8 @@ How a ROM list built from the files differs from stock MainUI's, and what is the
 - **Listed here, not in stock:** a `.bin` whose `.cue` is beside it but not in the `extlist` (`extlist` `bin`, say). Stock hides it anyway, leaving no entry for the game.
 - **Skipped here, not in stock:** with an empty or missing `extlist`, `miyoogamelist.xml`, `gamelist.xml`, ROM list caches (`*_cache*.db` and their build, journal and deletion files) and the copy of a ROM held while it is deleted. Folders named `Imgs` or `Manuals`, in any case, and the console's image folder are never listed, whatever the `extlist`.
 - **Order:** folders first, then by name. Unpatched stock compares names case-sensitively (`Zebra` before `alpha`); Open MainUI ignores case unless `.romListCaseSensitiveSort` is set, as the patched MainUI allows. Neither sorts numbers naturally (`10` comes before `2`). The same holds for the Games and Expert console grids: stock shows Expert's `fMSX` before `fbneo`, Open MainUI `fbneo` first.
+- **Refresh all roms:** Open MainUI rebuilds the cache of each console in Games and Expert, removing its `<name>_cache6.db` and that database's `-wal`, `-shm` and `-journal` files, also for consoles whose ROMs are outside `Roms`. Stock removes every file whose name starts with `<folder>_cache` in each `Roms/*` folder, including old cache versions and folders no console uses. Those leftovers are never read, so lists look the same; they only take space.
+- **Game details:** the whole genre and description are shown, the description scrolling as far as it goes. Stock cuts the genre at 255 bytes and the description at 64 lines. Both collapse line breaks and runs of spaces in the genre and description.
 
 ## XML import checkpoint
 

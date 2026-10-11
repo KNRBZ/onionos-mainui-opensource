@@ -46,4 +46,15 @@ without = details("without")
     "<gameList><game><path>./Sub/Game.rom</path><name>Game</name><genre>Puzzle</genre>"
     "<desc>A description from the system's gamelist.</desc></game></gameList>")
 assert details("with") != without, "the saved game's gamelist.xml was not read"
-print("Details of a saved game outside the open catalog read its system's gamelist.xml")
+# Whitespace in the genre collapses, as stock's parser does, so a line break
+# or a run of spaces does not change the summary line.
+(SD / "Roms/EXPERT_ONLY/gamelist.xml").write_text(
+    "<gameList><game><path>./Sub/Game.rom</path><name>Game</name>"
+    "<genre>Puzzle   and\n   Action</genre><desc>Text.</desc></game></gameList>")
+spaced = details("spaced")
+(SD / "Roms/EXPERT_ONLY/gamelist.xml").write_text(
+    "<gameList><game><path>./Sub/Game.rom</path><name>Game</name>"
+    "<genre>Puzzle and Action</genre><desc>Text.</desc></game></gameList>")
+assert details("single") == spaced, "genre whitespace was not collapsed"
+print("Details of a saved game outside the open catalog read its system's gamelist.xml; "
+      "genre whitespace collapses")
