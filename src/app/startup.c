@@ -662,6 +662,12 @@ void mainui_setup_render(MainUIApp *ui)
     /* As stock at start: the button mapping in system.json goes to the button
      * driver, which remaps the buttons (X as B, say) for every program. Nothing
      * else in Onion writes it. */
+    /* As stock at every start: keymon's live settings from system.json, and
+     * the display brightness from them. */
+    if (ui->real_device && !ui->snapshot && ui->sd &&
+        !mainui_device_settings_load(&ui->device_adapter, ui->sd)) {
+        fprintf(stderr, "Cannot load the live settings from system.json\n");
+    }
     if (ui->real_device && !ui->snapshot && ui->sd &&
         !mainui_keymap_apply(ui->sd, "/sys/module/gpio_keys_polled/parameters/button_config")) {
         fprintf(stderr, "Cannot hand the button mapping to the button driver\n");
@@ -669,8 +675,8 @@ void mainui_setup_render(MainUIApp *ui)
     /* Snapshot tests stay silent. Playback is optional on the host. */
     if (!ui->snapshot) {
         cJSON *system_config = mainui_system_read(ui->sd ? ui->sd : ".");
-        const cJSON *volume = cJSON_GetObjectItemCaseSensitive(system_config, "bgmvol");
-        int level = cJSON_IsNumber(volume) ? volume->valueint : 20;
+        /* Stock's 8 when the value is missing or not a number. */
+        int level = mainui_system_monitor_value(system_config, "bgmvol");
         /* mainui_audio_open() logs the specific reason. */
         mainui_audio_open(ui->theme.directory, ui->theme.fallback, level);
         cJSON_Delete(system_config);

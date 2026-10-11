@@ -64,6 +64,12 @@ const char *mainui_keymap_value(const cJSON *settings);
 /* Write that value for the system.json of `sd` to `target`, the driver's
  * button_config parameter on the device. False when it cannot be written. */
 bool mainui_keymap_apply(const char *sd, const char *target);
+/* Stock MainUI fills keymon's live copy from system.json on every start
+ * (mainui_device_settings_load): the value it writes for `key` (vol,
+ * brightness, mute, bgmvol, hibernate, lumination, hue, saturation,
+ * contrast, audiofix). A number is taken as it is, except that lumination,
+ * hue, saturation and contrast must be 0 to 20; otherwise stock's default. */
+int mainui_system_monitor_value(const cJSON *settings, const char *key);
 /* system.json exists but its content cannot be used (not a JSON object, NUL
  * bytes, too large), as opposed to missing, blank or an I/O error. Nothing
  * resets or rewrites it: it holds settings other programs share. */

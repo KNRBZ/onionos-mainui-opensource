@@ -75,6 +75,9 @@ subprocess.run([str(BUILD / "fixture-stock_settings"),str(CONFIG),str(DUPLICATES
 DAMAGED = OUT/'damaged-sd'
 DAMAGED.mkdir(exist_ok=True)
 subprocess.run([str(BUILD / "fixture-stock_settings"),str(CONFIG),str(DAMAGED),'damaged'],cwd=ROOT,check=True,timeout=20)
+DEFAULTS = OUT/'defaults-sd'
+DEFAULTS.mkdir(exist_ok=True)
+subprocess.run([str(BUILD / "fixture-stock_settings"),str(CONFIG),str(DEFAULTS),'defaults'],cwd=ROOT,check=True,timeout=20)
 MONITOR = OUT/'monitor-sd'
 shutil.rmtree(OUT/'monitor-sd.away', ignore_errors=True)  # left by an interrupted run
 MONITOR.mkdir(exist_ok=True)

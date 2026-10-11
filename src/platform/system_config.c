@@ -3,6 +3,7 @@
 #include "platform/device_adapter.h"
 #include "platform/files.h"
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -289,6 +290,32 @@ static MainUISettingsResult patch_unlocked(const char *sd, const cJSON *values)
                                       : MAINUI_SETTINGS_PARTLY;
     log_not_saved(path, values, result);
     return result;
+}
+
+int mainui_system_monitor_value(const cJSON *settings, const char *key)
+{
+    static const struct {
+        const char *key;
+        int fallback;
+        bool ranged; /* 0 to 20 */
+    } stock[] = {{"vol", 20, false},    {"brightness", 7, false}, {"mute", 0, false},
+                 {"bgmvol", 8, false},  {"hibernate", 0, false},  {"lumination", 7, true},
+                 {"hue", 10, true},     {"saturation", 10, true}, {"contrast", 10, true},
+                 {"audiofix", 1, false}};
+
+    for (size_t i = 0; i < sizeof stock / sizeof *stock; ++i) {
+        if (strcmp(key, stock[i].key)) {
+            continue;
+        }
+        const cJSON *value = cJSON_GetObjectItemCaseSensitive(settings, key);
+        if (!cJSON_IsNumber(value) || value->valuedouble < INT_MIN ||
+            value->valuedouble > INT_MAX) {
+            return stock[i].fallback;
+        }
+        int number = (int)value->valuedouble;
+        return stock[i].ranged && (number < 0 || number > 20) ? stock[i].fallback : number;
+    }
+    return 0;
 }
 
 bool mainui_system_damaged(const char *sd)

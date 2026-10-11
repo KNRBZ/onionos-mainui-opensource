@@ -3,6 +3,7 @@
 #include "platform/device_adapter.h"
 #include "platform/device_request.h"
 #include "platform/files.h"
+#include "platform/system_config.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -653,12 +654,14 @@ bool mainui_device_power_off(const MainUIDeviceAdapter *adapter)
  * `key` is not one of them; *info is NULL when the memory is unavailable. */
 static const MonitorValue *monitor_slot(const char *key, KeyShmInfo **info)
 {
-    static const char *const keys[] = {"vol", "brightness", "bgmvol",   "hibernate", "lumination",
-                                       "hue", "saturation", "contrast", "audiofix"};
+    /* "volume_changed" is no system.json key: stock clears it at start. */
+    static const char *const keys[] = {"vol",        "brightness", "bgmvol",        "hibernate",
+                                       "lumination", "hue",        "saturation",    "contrast",
+                                       "audiofix",   "mute",       "volume_changed"};
     static const MonitorValue slots[] = {
-        MONITOR_VOLUME,          MONITOR_BRIGHTNESS, MONITOR_BGM_VOLUME,
-        MONITOR_HIBERNATE_DELAY, MONITOR_LUMINATION, MONITOR_HUE,
-        MONITOR_SATURATION,      MONITOR_CONTRAST,   MONITOR_AUDIOFIX};
+        MONITOR_VOLUME,     MONITOR_BRIGHTNESS, MONITOR_BGM_VOLUME,    MONITOR_HIBERNATE_DELAY,
+        MONITOR_LUMINATION, MONITOR_HUE,        MONITOR_SATURATION,    MONITOR_CONTRAST,
+        MONITOR_AUDIOFIX,   MONITOR_MUTE,       MONITOR_VOLUME_CHANGED};
     static KeyShmInfo shared = {.id = -1, .addr = NULL};
     for (size_t i = 0; i < sizeof slots / sizeof *slots; ++i) {
         if (!strcmp(key, keys[i])) {
@@ -712,6 +715,39 @@ bool mainui_device_setting_value(const MainUIDeviceAdapter *adapter, const char 
     (void)value;
 #endif
     return false;
+}
+
+bool mainui_device_settings_load(const MainUIDeviceAdapter *adapter, const char *sd)
+{
+    if (adapter->backend == DEVICE_SIMULATED) {
+        return true;
+    }
+    if (mainui_system_damaged(sd)) {
+        fprintf(stderr, "[settings] system.json is damaged; keymon's live settings kept\n");
+        return false;
+    }
+    cJSON *settings = mainui_system_read(sd); /* an empty object when missing */
+    if (!settings) {
+        fprintf(stderr, "[settings] system.json cannot be read; keymon's live settings kept\n");
+        return false;
+    }
+    static const char *const keys[] = {"vol",       "brightness", "mute", "bgmvol",
+                                       "hibernate", "lumination", "hue",  "saturation",
+                                       "contrast",  "audiofix"};
+    bool ok = mainui_device_setting_sync(adapter, "volume_changed", 0);
+    for (size_t i = 0; i < sizeof keys / sizeof *keys; ++i) {
+        ok = mainui_device_setting_sync(adapter, keys[i],
+                                        mainui_system_monitor_value(settings, keys[i])) &&
+             ok;
+    }
+    cJSON_Delete(settings);
+    /* Stock then sets the display from the live copy, limited to 0 to 10. */
+    int brightness = 7;
+    if (!mainui_device_setting_value(adapter, "brightness", &brightness)) {
+        return false;
+    }
+    brightness = brightness < 0 ? 0 : brightness > 10 ? 10 : brightness;
+    return mainui_device_brightness(adapter, brightness) && ok;
 }
 
 bool mainui_device_brightness(const MainUIDeviceAdapter *adapter, int value)
