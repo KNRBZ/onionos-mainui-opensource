@@ -498,30 +498,7 @@ static void draw_about(const MainUISettingsPage *page, SDL_Surface *screen, Main
             !strcmp(values[i], "Unknown") ? mainui_translate(74, "unknown") : values[i];
         TTF_SizeUTF8(theme->menu_font, value, &value_width, NULL);
         int text_y = y + (60 - TTF_FontHeight(theme->menu_font)) / 2;
-        if (page->kind == SET_WIFI && i > 0) {
-            SDL_Rect label_clip = {20, (Sint16)y, 430, 60};
-            SDL_SetClipRect(screen, &label_clip);
-            mainui_label(screen, theme->menu_font, theme->color, label, 20, text_y);
-            SDL_SetClipRect(screen, &clip);
-            /* Stock thresholds, but fix stock's weak-signal full-bars list bug. */
-            int level = page->network_signal[i - 1];
-            SDL_Surface *signal = theme->wifi_signal[level >= 2 && level <= 3 ? level : 1];
-            if (page->wifi_connection == 1 &&
-                !strcmp(page->connected_ssid, page->networks[i - 1]) && theme->wifi_connected) {
-                mainui_blit(screen, theme->wifi_connected, 470 - theme->wifi_connected->w / 2,
-                            y + (60 - theme->wifi_connected->h) / 2);
-            }
-            if (page->network_secure[i - 1] && theme->wifi_locked) {
-                mainui_blit(screen, theme->wifi_locked, 520 - theme->wifi_locked->w / 2,
-                            y + (60 - theme->wifi_locked->h) / 2);
-            }
-            if (signal) {
-                mainui_blit(screen, signal, 580 - signal->w / 2, y + (60 - signal->h) / 2);
-            }
-        }
-        else {
-            mainui_label(screen, theme->menu_font, theme->color, label, 20, text_y);
-        }
+        mainui_label(screen, theme->menu_font, theme->color, label, 20, text_y);
         int left = 20 + label_width;
         if (left < 620) {
             clip.x = (Sint16)left;
