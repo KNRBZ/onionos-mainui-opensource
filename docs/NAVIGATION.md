@@ -12,6 +12,8 @@ X acts as B (back, close, cancel) on every screen, as stock does; in the on-scre
 
 A main-menu tab Onion leaves in `/tmp/state.json` opens when MainUI starts, as with stock: at boot the startup tab set in Tweaks (Recents, Favorites, Games, Expert or Apps), and Expert for Onion's Expert app (Expert in Apps, or Expert set as the X or Y shortcut in Tweaks), also after a return from Apps, where MainUI would otherwise reopen Apps. A tab opens also when it is hidden on the main menu, and B goes back to the main menu with that tab selected. As stock does, MainUI removes `state.json` once it has read it, so a later start without a new one, such as after keymon's GameSwitcher, is on the main menu; stock opens the main menu there too.
 
+On a launch, MainUI writes `state.json` with the main menu and the open tab only, which is what Onion's scripts read from it (Game List Options and Random Game take the tab). Stock writes every open screen, down to the ROM folder. MainUI comes back to that folder, with each parent folder's selection, from its own return file (`mainui-return.json`), written at the same moment. Neither file is written when keymon kills MainUI (for GameSwitcher, say), and stock's isn't either. Onion's `reset_list.sh` (Game List Options' list reset, also run by the ScummVM and Ports importers) sets the last screen's position in `state.json` to the top: in stock that is the ROM list, which reopens at its first game. Here that screen is the tab, and the return file is followed instead, so the rebuilt list reopens on the game launched, or at the same row, kept within the list, when that game is gone.
+
 ## Console grids
 
 The Games grid shows 4 columns by 2 rows per page, the Expert grid 3 by 3.
