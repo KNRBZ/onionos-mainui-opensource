@@ -708,6 +708,15 @@ void mainui_setup_render(MainUIApp *ui)
     if (ui->device_enabled) {
         mainui_about_start(&ui->about_job, &ui->device_adapter, ui->sd);
     }
+    /* Stock's start-up line, printed before its first frame. Onion's clock
+     * overlay (libmainuihooks.so, preloaded) waits for this printf format
+     * before it draws the time on each SDL_Flip. Called through a pointer:
+     * a fortified build would call __printf_chk, which it does not see. */
+    if (ui->real_device && !ui->snapshot) {
+        int (*volatile print)(const char *, ...) = printf;
+        print("%d run windows\n", 1);
+        fflush(stdout);
+    }
 }
 
 int mainui_teardown(MainUIApp *ui)
