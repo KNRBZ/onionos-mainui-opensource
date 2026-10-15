@@ -59,7 +59,7 @@ To install on a device, follow the [SD-card installation instructions](docs/BUIL
 
 ![New About device screen](./docs/screen-about.png)
 
-New "About device" screen with model name, max resolution and Onion version now visible.
+New "About device" screen with model name, max resolution and Onion version now visible. Its Website row shows the first line of `.tmp_update/onionVersion/website.txt`, so a build can name its own site, or `www.lomiyoo.com` without that file.
 
 ## Licence
 

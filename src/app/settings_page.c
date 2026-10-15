@@ -117,6 +117,11 @@ void mainui_settings_page_open(MainUISettingsPage *page, MainUISettingKind kind,
             }
         }
         page->version[version_end] = 0;
+        /* A build can name its own site; stock's otherwise. */
+        read_line(page->website, sizeof page->website, sd, ".tmp_update/onionVersion/website.txt");
+        if (!strcmp(page->website, "Unknown")) {
+            snprintf(page->website, sizeof page->website, "www.lomiyoo.com");
+        }
         snprintf(page->max_resolution, sizeof page->max_resolution, "Unknown");
         read_line(page->firmware, sizeof page->firmware, runtime, "firmware-version.txt");
         char model[24];
@@ -471,7 +476,7 @@ static void draw_about(const MainUISettingsPage *page, SDL_Surface *screen, Main
                             "Website"};
     const char *values[] = {
         page->model,   page->device_name, page->max_resolution, page->serial,  page->firmware,
-        page->version, page->cpu,         page->memory,         page->storage, "www.lomiyoo.com"};
+        page->version, page->cpu,         page->memory,         page->storage, page->website};
     const MainUISettingsArtwork *art = mainui_theme_settings_artwork(theme);
     /* DeviceInfoMenu 0x2ac38 uses the same div-line-h asset (0x1821c8). */
     SDL_Rect content = {0, 60, 640, 360};
