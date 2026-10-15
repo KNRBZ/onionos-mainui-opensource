@@ -60,7 +60,12 @@ void mainui_draw_context(SDL_Surface *screen, MainUITheme *theme, const MainUICo
  * question in grid.color (found by changing them in a theme). */
 void mainui_draw_confirmation(SDL_Surface *screen, MainUITheme *theme, int title_id, int body_id)
 {
-    SDL_Surface *background = mainui_theme_image(theme, "skin/pop-bg.png");
+    /* The theme's popup art, loaded once (as for the loading panel). */
+    if (!theme->loading_background_loaded) {
+        theme->loading_background = mainui_theme_image(theme, "skin/pop-bg.png");
+        theme->loading_background_loaded = true;
+    }
+    SDL_Surface *background = theme->loading_background;
     int width = background ? background->w : 480, height = background ? background->h : 300;
     int x = (640 - width) / 2, y = (480 - height) / 2;
     mainui_blit(screen, background, x, y);
@@ -113,9 +118,6 @@ void mainui_draw_confirmation(SDL_Surface *screen, MainUITheme *theme, int title
                      x + 230 + (button ? button->w : 0) + 10,
                      button_y + 5 + (button_height - TTF_FontHeight(theme->hint_font)) / 2);
         button_y += button_height + 10;
-    }
-    if (background) {
-        SDL_FreeSurface(background);
     }
 }
 

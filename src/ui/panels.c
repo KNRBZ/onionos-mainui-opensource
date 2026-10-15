@@ -404,7 +404,8 @@ void mainui_draw_message(SDL_Surface *screen, MainUITheme *theme, const char *ti
 void mainui_draw_languages(SDL_Surface *screen, MainUITheme *theme, const MainUILanguages *list)
 {
     list_frame(screen, theme, mainui_translate(23, "Change language"), 0, -1);
-    SDL_Surface *selection = mainui_theme_image(theme, "skin/bg-list-s.png");
+    /* Settings' selection art, loaded once. */
+    SDL_Surface *selection = mainui_theme_settings_artwork(theme)->selection;
     int start = list->start;
     for (int i = start; i < list->count && i < start + 6; i++) {
         int y = 60 + (i - start) * 60;
@@ -415,9 +416,6 @@ void mainui_draw_languages(SDL_Surface *screen, MainUITheme *theme, const MainUI
         }
         mainui_label(screen, theme->menu_font, theme->color, list->entries[i].name, 20,
                      y + (60 - TTF_FontHeight(theme->menu_font)) / 2);
-    }
-    if (selection) {
-        SDL_FreeSurface(selection);
     }
     SDL_SetClipRect(screen, NULL);
 }
