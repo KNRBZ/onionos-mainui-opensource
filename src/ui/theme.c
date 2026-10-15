@@ -122,24 +122,7 @@ static SDL_Surface *load_image(const MainUITheme *theme, const char *path)
         SDL_FreeSurface(image);
         image = converted;
     }
-    if (image->format->BytesPerPixel == 4 && image->format->Amask && !SDL_MUSTLOCK(image)) {
-        bool opaque = true;
-        for (int y = 0; opaque && y < image->h; ++y) {
-            const Uint32 *row = (const Uint32 *)((const Uint8 *)image->pixels + y * image->pitch);
-            for (int x = 0; x < image->w; ++x) {
-                if ((row[x] & image->format->Amask) != image->format->Amask) {
-                    opaque = false;
-                    break;
-                }
-            }
-        }
-        if (opaque) {
-            SDL_SetAlpha(image, 0, SDL_ALPHA_OPAQUE);
-        }
-        else {
-            SDL_SetAlpha(image, SDL_SRCALPHA | SDL_RLEACCEL, SDL_ALPHA_OPAQUE);
-        }
-    }
+    mainui_artwork_blend(image);
     return image;
 }
 
