@@ -735,10 +735,14 @@ bool mainui_theme_open_sd(MainUITheme *t, const char *dir, const char *base, con
                                expert_size >= 1 && expert_size <= 120 ? expert_size : 18);
     /* Hint text (footer hints, counter, dialog actions) has its own font, as
      * stock's label font: hint.font, or without one the default font
-     * (Exo 2 Bold Italic, or the language font), never the title's. Its
-     * style is the font file's own. */
+     * (Exo 2 Bold Italic, or the language font), never the title's. Stock
+     * (0x12a850) always gives it SDL_ttf's italic style, which slants an
+     * upright font and leaves one that is italic already as it is. */
     const char *hint_face = json_string(hint, "font");
     t->hint_font = font_open(t, hint_face, hint_size);
+    if (t->hint_font) {
+        TTF_SetFontStyle(t->hint_font, TTF_STYLE_ITALIC);
+    }
     if (t->grid_font && !grid_face) {
         TTF_SetFontStyle(t->grid_font, TTF_STYLE_BOLD);
     }
