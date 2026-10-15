@@ -28,6 +28,10 @@ The first line of each start names the build: `[startup] Open MainUI <version>, 
 * `[delete]`: an interrupted ROM deletion resolved automatically.
 * `[timing]`: timing counters; see [TIMING.md](TIMING.md).
 
+## Display colours reset after a reboot (Mini Flip)
+
+On the Mini Flip, Luminance, Hue, Saturation and Contrast from Settings › Display can be back at their defaults after a reboot, while Settings still shows the saved values. At start, MainUI loads the four values from `system.json` into keymon's live settings, as stock MainUI does, but sets them on the screen only when one of them is changed in Settings › Display, as stock does too; changing one applies all four. A 1.0.8 test build also set them on the screen at start: on RedOnion Beta 6 and 7 that made GameSwitcher freeze at times and the top of DraStic's screen flicker, and both went away without it, so it was taken out. Setting the saved colours at boot is left to the OS, which can do it at a point in its start-up that is safe for its display driver.
+
 ## A console lists file names instead of its gamelist titles
 
 When a console's `miyoogamelist.xml` cannot be used at all (for example an empty file, or one with no `<gameList>`), the log says `miyoogamelist.xml is unusable (<reason>); listing the ROM files instead`, and the list is built from the file names. The XML is never changed. A file that cannot be read because of a card or permission error is different: the log says `could not be read`, and the previous list is kept. Most sloppy files are read as they are: unescaped `&` or `<` in titles and Windows-1252 accents work. Once the file is fixed, run **Refresh roms** for that console. See [CATALOG_CACHE.md](CATALOG_CACHE.md#xml-import-checkpoint).
