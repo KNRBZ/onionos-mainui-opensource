@@ -56,6 +56,8 @@ void mainui_draw_context(SDL_Surface *screen, MainUITheme *theme, const MainUICo
     SDL_SetClipRect(screen, NULL);
 }
 
+/* Stock's DialogWindow draws its title in the theme's total colour and its
+ * question in grid.color (found by changing them in a theme). */
 void mainui_draw_confirmation(SDL_Surface *screen, MainUITheme *theme, int title_id, int body_id)
 {
     SDL_Surface *background = mainui_theme_image(theme, "skin/pop-bg.png");
@@ -64,8 +66,7 @@ void mainui_draw_confirmation(SDL_Surface *screen, MainUITheme *theme, int title
     mainui_blit(screen, background, x, y);
     const char *title_text =
         mainui_translate(title_id, title_id == 77 ? "Clear recent list?" : "Shutdown");
-    SDL_Surface *title =
-        TTF_RenderUTF8_Blended(theme->title_font, title_text, (SDL_Color){255, 255, 255, 0});
+    SDL_Surface *title = TTF_RenderUTF8_Blended(theme->title_font, title_text, theme->total_color);
     if (title) {
         mainui_blit(screen, title, x + (width - title->w) / 2, y + (50 - title->h) / 2);
         SDL_FreeSurface(title);
@@ -89,8 +90,7 @@ void mainui_draw_confirmation(SDL_Surface *screen, MainUITheme *theme, int title
         }
         memcpy(line, p, length);
         line[length] = 0;
-        SDL_Surface *text =
-            TTF_RenderUTF8_Blended(theme->title_font, line, (SDL_Color){128, 128, 128, 0});
+        SDL_Surface *text = TTF_RenderUTF8_Blended(theme->title_font, line, theme->grid_color[0]);
         if (text) {
             mainui_blit(screen, text, x + (width - text->w) / 2, top);
             SDL_FreeSurface(text);

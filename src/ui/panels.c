@@ -291,8 +291,8 @@ static void centered_label(SDL_Surface *screen, TTF_Font *font, SDL_Color color,
 }
 
 /* Stock's NotifyWindow (0x33bac) draws skin/pop-bg.png centred on the
- * screen, as the confirmation dialog does here, in that dialog's colours
- * (the hint as its body). False, drawing nothing, without the
+ * screen, as the confirmation dialog does here, in that dialog's colours:
+ * the title in the theme's total colour, the text and hint in grid.color. False, drawing nothing, without the
  * image or when the body does not fit it: the plain panel then shows it all. */
 static bool draw_message_popup(SDL_Surface *screen, MainUITheme *theme, const char *title,
                                const char *body)
@@ -341,16 +341,13 @@ static bool draw_message_popup(SDL_Surface *screen, MainUITheme *theme, const ch
     TTF_Font *font = theme->title_font;
     int block = skip + GAP + count * skip + GAP + skip;
     int top = y + TOP + (pop->h - TOP - BOTTOM - block) / 2;
-    centered_label(screen, font, (SDL_Color){255, 255, 255, 0}, title ? title : "", x, pop->w, top);
+    centered_label(screen, font, theme->total_color, title ? title : "", x, pop->w, top);
     top += skip + GAP;
     for (int i = 0; i < count; i++) {
-        centered_label(screen, font, (SDL_Color){128, 128, 128, 0}, lines[i], x, pop->w, top);
+        centered_label(screen, font, theme->grid_color[0], lines[i], x, pop->w, top);
         top += skip;
     }
-    /* The theme's hint colour suits the footer, not always this art (Super
-     * Onion Entertainment System's is dark on its black panel). */
-    centered_label(screen, font, (SDL_Color){128, 128, 128, 0}, "A / B: close", x, pop->w,
-                   top + GAP);
+    centered_label(screen, font, theme->grid_color[0], "A / B: close", x, pop->w, top + GAP);
     SDL_SetClipRect(screen, NULL);
     return true;
 }
