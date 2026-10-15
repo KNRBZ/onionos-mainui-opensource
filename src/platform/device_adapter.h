@@ -34,6 +34,10 @@ MainUIDeviceStatus mainui_device_status(const MainUIDeviceAdapter *);
 bool mainui_device_connect(MainUIDeviceAdapter *, const char *ssid, const char *password,
                            MainUICancel);
 int mainui_wifi_signal_level(int dbm);
+/* A line /customer/app/axp_test prints says the battery is charging: its
+ * "charging" field is 2 or 3, as stock MainUI reads it (Onion's battery.h
+ * takes only 3). */
+bool mainui_axp_charging(const char *line);
 bool mainui_device_refresh(MainUIDeviceAdapter *, MainUICancel);
 bool mainui_device_wifi_enable(MainUIDeviceAdapter *, bool enabled, MainUICancel);
 bool mainui_device_scan(MainUIDeviceAdapter *, MainUICancel);

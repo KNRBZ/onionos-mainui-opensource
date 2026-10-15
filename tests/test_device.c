@@ -184,6 +184,13 @@ int main(int argc, char **argv)
 {
     assert(argc == 2);
     about_readings();
+    /* axp_test's line, as stock MainUI reads it: 2 and 3 are charging. */
+    assert(mainui_axp_charging("{\"battery\":87, \"voltage\":4100, \"charging\":3}"));
+    assert(mainui_axp_charging("{\"battery\":99, \"voltage\":4180, \"charging\":2}"));
+    assert(!mainui_axp_charging("{\"battery\":87, \"voltage\":4100, \"charging\":0}"));
+    assert(!mainui_axp_charging("{\"battery\":100, \"voltage\":4200, \"charging\":1}"));
+    assert(!mainui_axp_charging("") && !mainui_axp_charging("axp_test: error") &&
+           !mainui_axp_charging(NULL));
     const char *root = argv[1];
     MainUIDeviceAdapter adapter;
     assert(mainui_device_adapter_open(&adapter, DEVICE_SIMULATED, root));
