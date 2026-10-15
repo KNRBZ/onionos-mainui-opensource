@@ -62,12 +62,14 @@ void mainui_draw_footer(SDL_Surface *screen, MainUITheme *theme, int page, int t
 static void header_battery(SDL_Surface *screen, MainUITheme *theme)
 {
     int percent = theme->battery_percent;
-    int index = percent == 500 ? 5
-                : percent < 5  ? 0
-                : percent < 30 ? 1
-                : percent < 60 ? 2
-                : percent < 90 ? 3
-                               : 4;
+    /* Stock MainUI's levels (0x16ddc): above 69, 44, 14 and 4 %. Onion's
+     * own screens use 90, 60, 30 and 5. */
+    int index = percent == 500  ? 5
+                : percent <= 4  ? 0
+                : percent <= 14 ? 1
+                : percent <= 44 ? 2
+                : percent <= 69 ? 3
+                                : 4;
     SDL_Surface *icon = theme->battery_icons[index];
     if (percent < 0 || !icon) {
         return;

@@ -36,7 +36,8 @@ def capture(name,battery='100',system=False):
 home=capture('home')
 assert home.getpixel((25,25))==(255,0,0)
 assert home.getpixel((596,30))==(0,255,0)
-assert capture('low','20').getpixel((596,30))==(0,0,255)
+# power-20%-icon.png is drawn up to 14 %, as in stock.
+assert capture('low','14').getpixel((596,30))==(0,0,255)
 assert capture('charging','500').getpixel((596,30))==(255,255,0)
 assert capture('hidden','-1').getpixel((596,30))==(10,20,30)
 # miyoo-topbar.png is drawn unclipped at (20, (60-h)/2), as stock does: a tall
