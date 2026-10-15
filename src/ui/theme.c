@@ -682,6 +682,9 @@ bool mainui_theme_open_sd(MainUITheme *t, const char *dir, const char *base, con
     if (color && strlen(color) == 7 && sscanf(color, "#%2x%2x%2x", &r, &g, &b) == 3) {
         t->color = (SDL_Color){(Uint8)r, (Uint8)g, (Uint8)b, 0};
     }
+    /* A sentinel fallback tells a valid colour from a missing or bad one. */
+    t->search_color = theme_color(gamelist, "searchColor", (SDL_Color){0, 0, 0, 1});
+    t->search_color_set = t->search_color.unused == 0;
     int margin = json_int(gamelist, "iconLeftMargin", -1);
     if (margin >= 0) {
         t->icon_margin = margin > 300 ? 300 : margin;
