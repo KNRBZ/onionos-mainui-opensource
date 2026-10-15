@@ -44,6 +44,8 @@ This applies to ROM lists, Favorites, Recents, Apps and Search results.
 | Start | Reloads the console grid or ROM list when released, as stock acts on release. Not after a combo: Start with L2 or R2 is keymon's volume boost. |
 | Menu | Opens the context menu, as Select does, when Menu is released. With Onion's default "Context menu" long press (Tweaks > Button shortcuts), keymon sends MainUI only that release, as for stock. A second release, such as the physical one after keymon's, does not close the menu; B or Select does. Keymon also sends an L1 press after its release, after each repeat of Menu while it is held and after the physical release. Every L1 within 3 s of a Menu event, with no other key between, is ignored with its repeats, so holding Menu does not move the selection in a list. |
 
+The main menu's context menu shows Search and Tweaks only while their app (`App/Search`, `App/Tweaks`) is installed, also when `.tmp_update/config/main-menu.json` lists them, as Settings shows Tweaks. Installed again, they come back without changing that file.
+
 Apps are listed in the order the SD card lists their folders, as in stock, not by name: on FAT that is usually the order the folders were created in, so Quick Guide may come first. An empty file named `.appsort` in `.tmp_update/config` sorts them by name instead, with the same case rule as the other lists. Consoles and ROMs are sorted by name (see [CATALOG_CACHE.md](CATALOG_CACHE.md#differences-from-stock)).
 
 The window scrolls only as far as needed to keep the selected row on screen. A row that is already visible never moves the window.
