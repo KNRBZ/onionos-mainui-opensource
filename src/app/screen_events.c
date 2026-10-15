@@ -606,22 +606,24 @@ bool mainui_screen_context_menu_key(MainUIApp *ui, SDLKey key, int *requested_se
         return true;
     }
     if (entry->action == CONTEXT_REFRESH) {
-        /* Release inactive console readers too before deleting shared caches. */
+        /* Release inactive console readers too before deleting shared caches.
+         * The grid's position is in pages[0] only for a catalog left inside a
+         * console; on the grid it is the view, which stays. */
         MainUICatalog *opened[] = {ui->games, ui->expert};
+        MainUIViewport *saved[] = {&ui->games_view, &ui->expert_view};
         for (int i = 0; i < 2; ++i) {
+            if (opened[i] && opened[i]->depth) {
+                *saved[i] = opened[i]->pages[0].view;
+                if (opened[i] == ui->catalog && !ui->home && !ui->library) {
+                    ui->view = opened[i]->pages[0].view;
+                }
+            }
             if (opened[i]) {
                 while (mainui_catalog_back(opened[i])) {
                 }
             }
         }
-        if (ui->games) {
-            ui->games_view = ui->games->pages[0].view;
-        }
-        if (ui->expert) {
-            ui->expert_view = ui->expert->pages[0].view;
-        }
         if (ui->catalog && !ui->home && !ui->library) {
-            ui->view = ui->catalog->pages[0].view;
             mainui_browser_grid_restore(ui->catalog, &ui->view, ui->view.selected);
         }
         ui->cached_start = ui->menu_view.cached_start = -1;
