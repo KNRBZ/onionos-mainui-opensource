@@ -963,6 +963,7 @@ bool mainui_screen_list_key(MainUIApp *ui, SDLKey key)
             }
             else if (mainui_browser_index(ui->catalog, ui->view.selected) < 0 &&
                      mainui_browser_back(ui->catalog, &ui->view)) {
+                ui->preview_sync_once = true;
                 ui->cached_start = ui->menu_view.cached_start = -1;
             }
             else if (key == SDLK_RETURN && ui->handoff_dir &&
