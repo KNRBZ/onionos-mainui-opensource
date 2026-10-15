@@ -225,7 +225,8 @@ bool mainui_screen_apps(MainUIApp *ui, SDLKey key)
         ui->apps = NULL;
         ui->menu_view.cached_start = -1;
     }
-    else if (key == SDLK_RETURN && ui->apps_view.selected >= 0) {
+    else if (key == SDLK_RETURN && ui->apps_view.selected >= 0 &&
+             ui->apps_view.selected < ui->apps->pages[0].count) {
         if (ui->handoff_dir) {
             ui->launch_pending =
                 mainui_session_launch(ui->handoff_dir, &ui->launch_source, NULL, ui->message_body);
@@ -701,7 +702,9 @@ static bool screen_context_open_key(MainUIApp *ui, SDLKey key)
         mainui_context_rows(&ui->context, app_actions, ui->context_record ? 2 : 0);
     }
     else if (ui->library) {
-        if (ui->view.selected >= 0 && !mainui_library_is_folder(ui->library, ui->view.selected)) {
+        /* An empty list has no row 0: its slot may hold a removed row. */
+        if (ui->view.selected >= 0 && ui->view.selected < ui->library->visible_count &&
+            !mainui_library_is_folder(ui->library, ui->view.selected)) {
             ui->context_record = cJSON_Duplicate(
                 ui->library->items[ui->library->visible[ui->view.selected]].json, true);
         }
@@ -884,6 +887,7 @@ bool mainui_screen_list_key(MainUIApp *ui, SDLKey key)
             ui->library->views[ui->library->current + 1] = ui->view;
             changed = mainui_library_enter(ui->library, ui->view.selected);
             if (!changed && key == SDLK_RETURN && ui->handoff_dir && ui->view.selected >= 0 &&
+                ui->view.selected < ui->library->visible_count &&
                 !mainui_library_is_folder(ui->library, ui->view.selected)) {
                 ui->launch_pending = mainui_session_launch(ui->handoff_dir, &ui->launch_source,
                                                            NULL, ui->message_body);
@@ -939,7 +943,9 @@ bool mainui_screen_list_key(MainUIApp *ui, SDLKey key)
         }
         break;
     case SDLK_RETURN:
-        if (ui->catalog && ui->view.selected >= 0) {
+        /* An empty list or grid has nothing to open or launch. */
+        if (ui->catalog && ui->view.selected >= 0 &&
+            ui->view.selected < mainui_browser_count(ui->catalog)) {
             if (mainui_browser_folder(ui->catalog, ui->view.selected) &&
                 mainui_browser_index(ui->catalog, ui->view.selected) >= 0) {
                 if (!mainui_positions_save(ui->catalog, &ui->view)) {
