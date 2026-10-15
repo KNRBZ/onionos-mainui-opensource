@@ -67,6 +67,6 @@ This also holds when the folders were reordered outside MainUI while a game ran:
 
 ## Confirmations and messages
 
-Delete ROM, Clear Recents and Shutdown ask before they act. Holding A after it opened the question never answers it: release A and press it again. Likewise, A that confirms or dismisses a message acts once; holding it does nothing more until it is released. Leaving MainUI's focus or going to sleep cancels an open question.
+Delete ROM, Clear Recents, Shutdown and Delete folder in Favorites ask before they act. Deleting a Favorites folder removes all it holds: the folders inside it and their Favorites, which leave the Favorites list (`favourite.json`); the games themselves stay on the SD card. Holding A after it opened the question never answers it: release A and press it again. Likewise, A that confirms or dismisses a message acts once; holding it does nothing more until it is released. Leaving MainUI's focus or going to sleep cancels an open question.
 
 A message shown over game details takes the keys first: A or Back dismisses it, and the details stay open behind it.

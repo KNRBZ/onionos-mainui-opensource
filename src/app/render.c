@@ -644,12 +644,14 @@ static bool compose_full_frame(MainUIApp *ui)
     }
     if (ui->confirmation >= 0) {
         mainui_draw_confirmation(ui->screen, &ui->theme,
-                                 ui->confirmation == CONTEXT_CLEAR_RECENT ? 77
-                                 : ui->confirmation == CONTEXT_DELETE_ROM ? 116
-                                                                          : 86,
-                                 ui->confirmation == CONTEXT_CLEAR_RECENT ? 78
-                                 : ui->confirmation == CONTEXT_DELETE_ROM ? 117
-                                                                          : 108);
+                                 ui->confirmation == CONTEXT_CLEAR_RECENT      ? 77
+                                 : ui->confirmation == CONTEXT_DELETE_ROM      ? 116
+                                 : ui->confirmation == CONTEXT_FAVORITE_DELETE ? 404
+                                                                               : 86,
+                                 ui->confirmation == CONTEXT_CLEAR_RECENT      ? 78
+                                 : ui->confirmation == CONTEXT_DELETE_ROM      ? 117
+                                 : ui->confirmation == CONTEXT_FAVORITE_DELETE ? 81
+                                                                               : 108);
     }
     if (ui->name_input.open) {
         mainui_name_input_draw(&ui->name_input, ui->screen, &ui->theme);

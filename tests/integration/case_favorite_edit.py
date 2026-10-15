@@ -48,15 +48,18 @@ def capture(sd, name, actions, text=None):
 
 
 model = fixture("model")
-stock = (model / "Roms/favourite.json").read_bytes()
+stock = (model / "Roms/favourite.json").read_text().splitlines(keepends=True)
 subprocess.run([str(BUILD / "fixture-favorite_edit"), str(model)], cwd=ROOT, check=True)
-assert (model / "Roms/favourite.json").read_bytes() == stock
+# Deleting Container removed the Favorites it held (Inside, and Zebra moved
+# into it); the other lines are kept byte for byte.
+assert (model / "Roms/favourite.json").read_text().splitlines(keepends=True) == \
+    [line for line in stock if json.loads(line)["label"] not in ("Inside", "Zebra")]
 records = [json.loads(line) for line in (model / "Roms/favourite-folders.json").read_text().splitlines() if line.strip()]
 assert records[0]["keep"] == "header"
-assert any(row.get("keep") == "assignment" for row in records)
+assert not any(row.get("keep") == "assignment" for row in records)
 assert any(row.get("keep") == "opaque" for row in records)
 assert not any(row.get("id") == "container" for row in records)
-assert any(row.get("id") == "nested" and row["parent"] == "" for row in records)
+assert not any(row.get("key") in ("Inside", "Zebra") for row in records)
 
 ui = fixture("ui")
 sidecar = ui / "Roms/favourite-folders.json"
@@ -307,34 +310,82 @@ assert not sidecar.exists()
 print("Repairs keep the damaged original once; agreeing and backup-only sidecars stay as they are")
 
 
-# Removing a folder must not leave two same-named folders side by side
-# (review of 1.0.2, finding 3). Ordinary promotion keeps working.
+# Deleting a folder removes all it holds: its folders at any depth, their
+# assignments and their Favorites, which leave favourite.json; nothing
+# outside it changes, a same-named folder beside it included.
 def delete_once(sd, folder_id):
     return subprocess.run([str(BUILD / "fixture-favorite_edit"), str(sd), "delete", folder_id],
                           cwd=ROOT, capture_output=True, text=True, timeout=30)
 
-sd = fixture("promote-collision")
+sd = fixture("delete-subtree")
 sidecar = sd / "Roms/favourite-folders.json"
+favourites = sd / "Roms/favourite.json"
 write_lines(sidecar, [header,
                       dict(kind="folder", id="a", parent="", name="A", order=0),
                       dict(kind="folder", id="x", parent="", name="X", order=1),
                       dict(kind="folder", id="ax", parent="a", name="X", order=0),
-                      dict(kind="item", key="Zebra", type=5, folder="ax", order=0)])
-before = sidecar.read_bytes()
+                      dict(kind="folder", id="axy", parent="ax", name="Y", order=0),
+                      dict(kind="item", key="Zebra", type=5, folder="axy", order=0),
+                      dict(kind="item", key="apple", type=5, folder="a", order=0),
+                      dict(kind="item", key="Inside", type=5, folder="x", order=0)])
+stock = favourites.read_text().splitlines(keepends=True)
 result = delete_once(sd, "a")
-assert result.returncode == 1 and "same name" in result.stdout, result.stdout
-assert sidecar.read_bytes() == before
-sd = fixture("promote")
+assert result.returncode == 0, result.stdout
+rows = [json.loads(line) for line in sidecar.read_text().splitlines()]
+assert {row["id"] for row in rows if "id" in row} == {"x"}, rows
+assert not any(row.get("key") in ("Zebra", "apple") for row in rows), rows
+assert next(row for row in rows if row.get("key") == "Inside")["folder"] == "x", rows
+assert favourites.read_text().splitlines(keepends=True) == \
+    [line for line in stock if json.loads(line)["label"] not in ("Zebra", "apple")]
+# An empty folder goes alone; the Favorites file is not rewritten.
+sd = fixture("delete-empty")
 sidecar = sd / "Roms/favourite-folders.json"
-write_lines(sidecar, [header,
-                      dict(kind="folder", id="a", parent="", name="A", order=0),
-                      dict(kind="folder", id="x", parent="", name="X", order=1),
-                      dict(kind="folder", id="a1", parent="a", name="One", order=0),
-                      dict(kind="folder", id="a2", parent="a", name="Two", order=1)])
-assert delete_once(sd, "a").returncode == 0
-rows = {row["id"]: row for row in map(json.loads, sidecar.read_text().splitlines()) if "id" in row}
-assert set(rows) == {"x", "a1", "a2"} and rows["a1"]["parent"] == rows["a2"]["parent"] == ""
-print("Folder removal refuses duplicate sibling names and promotes distinct ones")
+write_lines(sidecar, [header, dict(kind="folder", id="e", parent="", name="Empty", order=0)])
+stock = (sd / "Roms/favourite.json").read_bytes()
+assert delete_once(sd, "e").returncode == 0
+assert not any("id" in json.loads(line) for line in sidecar.read_text().splitlines())
+assert (sd / "Roms/favourite.json").read_bytes() == stock
+
+# In MainUI, Delete folder asks first, with stock's labels; B keeps all.
+ui = fixture("delete-ui")
+sidecar = ui / "Roms/favourite-folders.json"
+favourites = ui / "Roms/favourite.json"
+before, games = sidecar.read_bytes(), favourites.read_bytes()
+# Favorites, Select on Container, Down to Delete (fourth), A: the question.
+asked = capture(ui, "delete-ask", "ESDDDE")
+assert asked != capture(ui, "delete-root", "E")
+capture(ui, "delete-cancel", "ESDDDEB")
+assert sidecar.read_bytes() == before and favourites.read_bytes() == games
+capture(ui, "delete-held", "ESDDDEEEE")  # A held: repeats only
+assert sidecar.read_bytes() == before and favourites.read_bytes() == games
+capture(ui, "delete-confirm", "ESDDDE-EE")
+assert not any(json.loads(line).get("id") in ("container", "nested")
+               for line in sidecar.read_text().splitlines())
+assert [json.loads(line)["label"] for line in favourites.read_text().splitlines()] == \
+    ["Zebra", "apple", "Apple"]
+
+# If the Favorites list cannot be rewritten (here a leftover reservation), the
+# folders are still deleted and the games kept, listed at the top; MainUI says
+# so, and once that is dismissed the open folder's list fits what is left.
+sd = fixture("delete-games-kept")
+write_lines(sd / "Roms/favourite-folders.json", [
+    dict(schema=1, generation=0),
+    dict(kind="folder", id="p", parent="", name="Parent", order=0),
+    dict(kind="folder", id="c", parent="p", name="Child", order=0),
+    dict(kind="item", key="Inside", type=5, folder="c", order=0)])
+favourites = sd / "Roms/favourite.json"
+games = favourites.read_bytes()
+(sd / "Roms/favourite.json.writing").write_text("foreign writer")
+# Open Parent, Down to Child, Delete, confirm, then dismiss the warning.
+dismissed = capture(sd, "kept-dismissed", "EE" + "D" + "SDDDE" + "-EE" + "-EE")
+assert favourites.read_bytes() == games
+rows = [json.loads(line) for line in (sd / "Roms/favourite-folders.json").read_text().splitlines()]
+assert [row["id"] for row in rows if "id" in row] == ["p"], rows
+assert not any(row.get("key") == "Inside" for row in rows), rows
+# Parent now holds only "..": the same as opening it afresh.
+assert capture(sd, "kept-reopened", "EE") == dismissed
+print("Deleting a folder asks first, then removes its folders and Favorites; "
+      "kept games are reported and the list refitted")
 
 
 # Paste keeps the visible window when the moved Favorite stays inside it and

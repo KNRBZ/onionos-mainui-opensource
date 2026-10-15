@@ -407,6 +407,30 @@ static bool screen_confirmation_key(MainUIApp *ui, SDLKey key)
         /* One press acts once: its repeat must not dismiss what follows. */
         ui->return_latched = ui->held[SDLK_RETURN];
         bool ok = false;
+        if (ui->confirmation == CONTEXT_FAVORITE_DELETE) {
+            ui->confirmation = -1;
+            bool deleted = ui->library &&
+                           mainui_favorite_edit(&ui->favorite_editor, ui->library, ui->sd,
+                                                CONTEXT_FAVORITE_DELETE, NULL, &ui->view.selected);
+            /* Also after a partial failure (folders saved and the list
+             * reloaded, its games kept): the window fits the list shown. */
+            if (ui->library) {
+                mainui_viewport_refit(&ui->view, ui->library->visible_count, ui->config.rows,
+                                      ui->view.selected);
+                ui->library->views[ui->library->current + 1] = ui->view;
+                ui->selected_at = SDL_GetTicks();
+            }
+            if (!deleted) {
+                snprintf(ui->message_title, sizeof ui->message_title, "%s",
+                         mainui_translate(404, "Delete folder"));
+                snprintf(ui->message_body, sizeof ui->message_body, "%s",
+                         ui->favorite_editor.error);
+            }
+            /* The Favorite marks in game lists, as after Remove. */
+            mainui_markers_refresh(ui, true);
+            ui->cached_start = -1;
+            return true;
+        }
         if (ui->confirmation == CONTEXT_DELETE_ROM) {
             ok = !ui->library && mainui_browser_delete(ui->catalog, &ui->view, ui->config.rows);
             /* A list that cannot be reopened after the deletion leaves the
@@ -556,6 +580,11 @@ bool mainui_screen_context_menu_key(MainUIApp *ui, SDLKey key, int *requested_se
                      mainui_context_label(entry));
             snprintf(ui->message_body, sizeof ui->message_body, "Could not update the saved list.");
         }
+        return true;
+    }
+    if (entry->action == CONTEXT_FAVORITE_DELETE) {
+        /* It removes the Favorites inside too: asked first. */
+        open_confirmation(ui, CONTEXT_FAVORITE_DELETE);
         return true;
     }
     if (entry->action >= CONTEXT_FAVORITE_MOVE && entry->action <= CONTEXT_FAVORITE_SORT) {
