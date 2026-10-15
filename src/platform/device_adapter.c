@@ -1037,8 +1037,11 @@ bool mainui_device_refresh(MainUIDeviceAdapter *adapter, MainUICancel cancel)
             }
             ok = !mainui_cancelled(cancel) && mainui_write_text_atomic(file, reply);
         }
-        else {
-            mainui_remove_file(file); /* A lost daemon must not leave a stale Connected status. */
+        else if (!mainui_cancelled(cancel)) {
+            /* A lost daemon must not leave a stale Connected status. A
+             * cancelled refresh (for a connection, Wi-Fi Off or On, or a
+             * launch) says nothing about it: keep the last status. */
+            mainui_remove_file(file);
         }
     }
     return ok;
