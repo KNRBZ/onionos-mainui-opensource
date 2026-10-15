@@ -282,9 +282,86 @@ static int wrap_text(TTF_Font *font, const char *text, int width, char lines[][2
     return count;
 }
 
+static void centered_label(SDL_Surface *screen, TTF_Font *font, SDL_Color color, const char *text,
+                           int x, int width, int y)
+{
+    int w = 0;
+    TTF_SizeUTF8(font, text, &w, NULL);
+    mainui_label(screen, font, color, text, x + (width - w) / 2, y);
+}
+
+/* Stock's NotifyWindow (0x33bac) draws skin/pop-bg.png centred on the
+ * screen, as the confirmation dialog does here, in that dialog's colours
+ * (the hint as its body). False, drawing nothing, without the
+ * image or when the body does not fit it: the plain panel then shows it all. */
+static bool draw_message_popup(SDL_Surface *screen, MainUITheme *theme, const char *title,
+                               const char *body)
+{
+    if (!theme->loading_background_loaded) {
+        theme->loading_background = mainui_theme_image(theme, "skin/pop-bg.png");
+        theme->loading_background_loaded = true;
+    }
+    SDL_Surface *pop = theme->loading_background;
+    if (!pop || pop->w < 200 || pop->h < 150 || pop->w > 640 || pop->h > 480) {
+        return false;
+    }
+    int skip = TTF_FontLineSkip(theme->title_font);
+    if (skip < 1) {
+        skip = 1;
+    }
+
+    /* Title, body and hint as one block, centred in the art between 30 px
+     * from its top and 45 px from its bottom, where art often has a frame or
+     * a band (Super Onion Entertainment System's red one). Popup art is
+     * usually as wide as the screen with a panel inset inside it, so the
+     * body keeps 50 px off each side. */
+    enum {
+        TOP = 30,
+        BOTTOM = 45,
+        GAP = 20
+    };
+
+    int room = pop->h - TOP - BOTTOM - 2 * skip - 2 * GAP;
+    int most = room / skip;
+    if (most < 1) {
+        return false;
+    }
+    if (most > 8) {
+        most = 8;
+    }
+    char lines[9][256];
+    int count = wrap_text(theme->title_font, body ? body : "", pop->w - 100, lines, most + 1);
+    if (count > most) {
+        return false;
+    }
+    int x = (640 - pop->w) / 2, y = (480 - pop->h) / 2;
+    mainui_blit(screen, pop, x, y);
+    SDL_Rect clip = {(Sint16)x, (Sint16)y, (Uint16)pop->w, (Uint16)pop->h};
+    SDL_SetClipRect(screen, &clip);
+    TTF_Font *font = theme->title_font;
+    int block = skip + GAP + count * skip + GAP + skip;
+    int top = y + TOP + (pop->h - TOP - BOTTOM - block) / 2;
+    centered_label(screen, font, (SDL_Color){255, 255, 255, 0}, title ? title : "", x, pop->w, top);
+    top += skip + GAP;
+    for (int i = 0; i < count; i++) {
+        centered_label(screen, font, (SDL_Color){128, 128, 128, 0}, lines[i], x, pop->w, top);
+        top += skip;
+    }
+    /* The theme's hint colour suits the footer, not always this art (Super
+     * Onion Entertainment System's is dark on its black panel). */
+    centered_label(screen, font, (SDL_Color){128, 128, 128, 0}, "A / B: close", x, pop->w,
+                   top + GAP);
+    SDL_SetClipRect(screen, NULL);
+    return true;
+}
+
 void mainui_draw_message(SDL_Surface *screen, MainUITheme *theme, const char *title,
                          const char *body)
 {
+    if (draw_message_popup(screen, theme, title, body)) {
+        return;
+    }
+
     /* The body wraps to as many lines as it needs; the panel grows down for
      * more than one line, up to the bottom of the screen. Messages are
      * deliberately bounded; no path is ever interpreted as a format string or
