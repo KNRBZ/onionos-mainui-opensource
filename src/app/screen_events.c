@@ -409,7 +409,9 @@ static bool screen_confirmation_key(MainUIApp *ui, SDLKey key)
         bool ok = false;
         if (ui->confirmation == CONTEXT_DELETE_ROM) {
             ok = !ui->library && mainui_browser_delete(ui->catalog, &ui->view, ui->config.rows);
-            ui->cached_start = -1;
+            /* A list that cannot be reopened after the deletion leaves the
+             * console grid on screen. */
+            ui->cached_start = ui->menu_view.cached_start = -1;
             mainui_preview_close(&ui->preview);
             if (ui->heading) {
                 SDL_FreeSurface(ui->heading);
