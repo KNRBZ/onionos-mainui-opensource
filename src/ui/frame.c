@@ -59,6 +59,35 @@ void mainui_draw_footer(SDL_Surface *screen, MainUITheme *theme, int page, int t
            mainui_translate(89, "BACK"));
 }
 
+/* The Wi-Fi (or hotspot) icon. `left` is the battery's leftmost pixel, icon
+ * or percentage (640 without a battery). */
+static void header_wifi(SDL_Surface *screen, MainUITheme *theme, int left)
+{
+    int level = theme->wifi_signal_level;
+    SDL_Surface *wifi = theme->wifi_signal[level >= 2 && level <= 3 ? level : 1];
+    /* Stock (0x16980, 0x1622c) gives each status icon a 48x48 slot from the
+     * right, 620 - (68 * slot + 48), y 6, and centers the image in it. The
+     * battery holds slot 0, so Wi-Fi is slot 1 at x 504; a wider image, as
+     * some themes ship, spreads from it. */
+    /* Stock's state 3: a running hotspot and no Wi-Fi connection. */
+    if (!theme->wifi_online && theme->hotspot_on) {
+        wifi = theme->wifi_hotspot;
+    }
+    if ((theme->wifi_online || theme->hotspot_on) && wifi) {
+        /* A battery percentage can widen the battery past its slot, over
+         * this one, where stock leaves the two overlapping. Keep stock's
+         * slot unless they would overlap; then sit 8 px left of the
+         * battery's leftmost pixel (icon or percentage), as before 1.0.6.
+         * Artwork wider than the slot is drawn to spread from it (Super
+         * Onion Entertainment System Remix's cloud) and stays as in stock. */
+        int x = 504 + (48 - wifi->w) / 2;
+        if (wifi->w <= 48 && x + wifi->w > left) {
+            x = left - 8 - wifi->w;
+        }
+        mainui_blit(screen, wifi, x, 6 + (48 - wifi->h) / 2);
+    }
+}
+
 static void header_battery(SDL_Surface *screen, MainUITheme *theme)
 {
     int percent = theme->battery_percent;
@@ -72,6 +101,9 @@ static void header_battery(SDL_Surface *screen, MainUITheme *theme)
                                 : 4;
     SDL_Surface *icon = theme->battery_icons[index];
     if (percent < 0 || !icon) {
+        /* No battery to draw (level unknown, or no image): Wi-Fi still is,
+         * in its own slot, as in stock. */
+        header_wifi(screen, theme, 640);
         return;
     }
     bool visible = theme->battery_visible && percent != 500 && icon->w <= 640;
@@ -107,33 +139,11 @@ static void header_battery(SDL_Surface *screen, MainUITheme *theme)
     }
     /* Onion theme/render/header.h centers the battery surface at (596,30). */
     int origin = 596 - width / 2;
-    int level = theme->wifi_signal_level;
-    SDL_Surface *wifi = theme->wifi_signal[level >= 2 && level <= 3 ? level : 1];
-    /* Stock (0x16980, 0x1622c) gives each status icon a 48x48 slot from the
-     * right, 620 - (68 * slot + 48), y 6, and centers the image in it. The
-     * battery holds slot 0, so Wi-Fi is slot 1 at x 504; a wider image, as
-     * some themes ship, spreads from it. */
-    /* Stock's state 3: a running hotspot and no Wi-Fi connection. */
-    if (!theme->wifi_online && theme->hotspot_on) {
-        wifi = theme->wifi_hotspot;
+    int left = origin + icon_x;
+    if (text && origin + text_x + theme->battery_offset_x < left) {
+        left = origin + text_x + theme->battery_offset_x;
     }
-    if ((theme->wifi_online || theme->hotspot_on) && wifi) {
-        /* A battery percentage can widen the battery past its slot, over
-         * this one, where stock leaves the two overlapping. Keep stock's
-         * slot unless they would overlap; then sit 8 px left of the
-         * battery's leftmost pixel (icon or percentage), as before 1.0.6.
-         * Artwork wider than the slot is drawn to spread from it (Super
-         * Onion Entertainment System Remix's cloud) and stays as in stock. */
-        int left = origin + icon_x;
-        if (text && origin + text_x + theme->battery_offset_x < left) {
-            left = origin + text_x + theme->battery_offset_x;
-        }
-        int x = 504 + (48 - wifi->w) / 2;
-        if (wifi->w <= 48 && x + wifi->w > left) {
-            x = left - 8 - wifi->w;
-        }
-        mainui_blit(screen, wifi, x, 6 + (48 - wifi->h) / 2);
-    }
+    header_wifi(screen, theme, left);
     /* As Onion's battery surface: an even height of at least 48 (its
      * icon->w is Onion's own, kept for the same pixels), centered at y=30,
      * with the icon and text centered in it. Rounds odd heights up, where

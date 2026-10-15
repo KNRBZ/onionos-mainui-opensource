@@ -78,11 +78,11 @@ for level in ("02", "03", "04"):
 config = json.loads((ONION_THEME / "config.json").read_text())
 
 
-def wifi_header(percentage):
+def wifi_header(percentage, battery="100"):
     config["batteryPercentage"] = {"visible": percentage, "onleft": True, "size": 24}
     (wifi_theme / "config.json").write_text(json.dumps(config))
     result = subprocess.run([EXE, "--sd-root", str(SD), "--theme", str(wifi_theme), "--fallback",
-                             str(ONION_THEME), "--device-dir", str(RUNTIME), "--battery", "100",
+                             str(ONION_THEME), "--device-dir", str(RUNTIME), "--battery", battery,
                              "--snapshot", str(shot)], capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stderr
     with Image.open(shot) as image:
@@ -96,6 +96,8 @@ def wifi_span(image):
 
 plain = wifi_header(False)
 assert wifi_span(plain) == (508, 547)
+# Without a battery to draw (level unknown), Wi-Fi keeps its slot.
+assert wifi_span(wifi_header(False, "-1")) == (508, 547)
 covered = wifi_header(True)
 left, right = wifi_span(covered)
 assert right - left == 39 and right < 508
