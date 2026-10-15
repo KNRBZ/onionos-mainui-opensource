@@ -31,6 +31,11 @@ typedef struct {
 } MainUIDeviceAdapter;
 
 bool mainui_device_adapter_open(MainUIDeviceAdapter *, MainUIDeviceBackend, const char *runtime);
+/* Only the battery level and charging state of `status`, for its model: as
+ * Onion's battery_hasChanged(), cheap enough to check every second. On the
+ * Mini Plus and Flip charging comes from axp_test, run off this thread and
+ * cached for 2 s. */
+void mainui_device_battery(const MainUIDeviceAdapter *, MainUIDeviceStatus *status);
 MainUIDeviceStatus mainui_device_status(const MainUIDeviceAdapter *);
 bool mainui_device_connect(MainUIDeviceAdapter *, const char *ssid, const char *password,
                            MainUICancel);

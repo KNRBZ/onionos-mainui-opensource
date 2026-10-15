@@ -162,6 +162,7 @@ bool mainui_poll_jobs(MainUIApp *ui)
             }
             int previous_sleep = ui->device_status.sleeping;
             ui->device_status = mainui_device_status(&ui->device_adapter);
+            ui->next_battery_check = now + 1000;
             if (!ui->battery_override) {
                 ui->theme.battery_percent = ui->device_status.battery;
                 ui->theme.battery_charging = ui->device_status.charging;
@@ -202,6 +203,16 @@ bool mainui_poll_jobs(MainUIApp *ui)
                     ui->device_status.address[0] = ui->device_status.ssid[0] = 0;
                 }
             }
+        }
+        /* The battery and charging state every second, as Onion's own screens
+         * check them (battery_hasChanged()), not only with the status poll:
+         * the charging icon comes and goes within about 2 s. A frame is drawn
+         * only when either changed. */
+        else if (!ui->battery_override && (Sint32)(now - ui->next_battery_check) >= 0) {
+            ui->next_battery_check = now + 1000;
+            mainui_device_battery(&ui->device_adapter, &ui->device_status);
+            ui->theme.battery_percent = ui->device_status.battery;
+            ui->theme.battery_charging = ui->device_status.charging;
         }
         ui->theme.wifi_online = ui->device_status.wifi == 1;
         ui->theme.hotspot_on = ui->device_status.hotspot == 1;

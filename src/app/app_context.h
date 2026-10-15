@@ -71,7 +71,7 @@ typedef struct {
     int battery_percent;
     MainUIDeviceAdapter device_adapter;
     MainUIDeviceStatus device_status;
-    Uint32 next_device_check, next_wifi_scan;
+    Uint32 next_device_check, next_wifi_scan, next_battery_check;
     bool device_enabled;
     char resolved_theme[MAINUI_PATH_MAX];
     char fallback_path[MAINUI_PATH_MAX];

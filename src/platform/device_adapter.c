@@ -574,24 +574,30 @@ static int axp_charging(void)
     return value > 0;
 }
 
+void mainui_device_battery(const MainUIDeviceAdapter *adapter, MainUIDeviceStatus *status)
+{
+    status->battery = -1;
+    int battery = runtime_number(adapter, "percBat");
+    if ((battery >= 0 && battery <= 100) || battery == 500) {
+        status->battery = battery;
+    }
+    int charging = adapter->backend == DEVICE_SIMULATED ? runtime_number(adapter, "charging")
+                   : status->model.id == 283            ? number("/sys/class/gpio/gpio59/value")
+                   : status->model.id == 285 || status->model.id == 354 ? axp_charging()
+                                                                        : -1;
+    /* On the Mini, Onion writes 500 for the level while charging; the Mini
+     * Plus and Flip keep the level, which is shown beside the charging icon. */
+    status->charging = charging == 1 || status->battery == 500;
+    if (status->charging && (status->battery < 0 || status->battery > 100)) {
+        status->battery = 500;
+    }
+}
+
 MainUIDeviceStatus mainui_device_status(const MainUIDeviceAdapter *adapter)
 {
     MainUIDeviceStatus status = {.battery = -1, .wifi = -1, .lid = -1, .sleeping = -1};
     status.model = mainui_device(runtime_number(adapter, "deviceModel"));
-    int battery = runtime_number(adapter, "percBat");
-    if ((battery >= 0 && battery <= 100) || battery == 500) {
-        status.battery = battery;
-    }
-    int charging = adapter->backend == DEVICE_SIMULATED ? runtime_number(adapter, "charging")
-                   : status.model.id == 283             ? number("/sys/class/gpio/gpio59/value")
-                   : status.model.id == 285 || status.model.id == 354 ? axp_charging()
-                                                                      : -1;
-    /* On the Mini, Onion writes 500 for the level while charging; the Mini
-     * Plus and Flip keep the level, which is shown beside the charging icon. */
-    status.charging = charging == 1 || status.battery == 500;
-    if (status.charging && (status.battery < 0 || status.battery > 100)) {
-        status.battery = 500;
-    }
+    mainui_device_battery(adapter, &status);
     if (status.model.lid) {
         int lid = adapter->backend == DEVICE_SIMULATED
                       ? runtime_number(adapter, "lid")
