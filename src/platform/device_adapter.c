@@ -523,6 +523,15 @@ bool mainui_device_wifi_enable(MainUIDeviceAdapter *adapter, bool enabled, MainU
         bool ok = wifi_program(down, cancel);
         char *power[] = {"/customer/app/axp_test", "wifioff", NULL};
         wifi_program(power, cancel);
+        /* wlan0 outlives the power-off briefly while the chip detaches. An
+         * On in that window took it for a chip still on and started
+         * wpa_supplicant on the departing interface, which then never
+         * attached to the new one: Wi-Fi stayed on "Scanning...". Wait
+         * (at most 3 s) for it to go, so the next enable starts cold. */
+        for (int i = 0;
+             i < 60 && !mainui_cancelled(cancel) && !access("/sys/class/net/wlan0", F_OK); ++i) {
+            poll(NULL, 0, 50);
+        }
         return ok;
     }
     char reply[64];
