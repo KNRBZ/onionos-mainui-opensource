@@ -18,6 +18,8 @@ typedef struct {
     char networks[32][33], message[256];
     int network_signal[32];
     bool network_secure[32], connect_after_password;
+    /* A Wi-Fi failure in message stays until the next button press. */
+    bool message_held;
 } MainUISettingsPage;
 
 typedef struct {

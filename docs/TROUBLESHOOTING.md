@@ -29,6 +29,10 @@ The first line of each start names the build: `[startup] Open MainUI <version>, 
 * `[delete]`: an interrupted ROM deletion resolved automatically.
 * `[timing]`: timing counters; see [TIMING.md](TIMING.md).
 
+## Wi-Fi does not connect
+
+Settings › Wi-Fi shows stock's "Fail to connect, check your password or reboot router" at the bottom when a connection could not be made, or when the network was not joined within 30 seconds of entering its password, which is how a wrong password shows. The notice goes away when the network is joined after all, or with the next button press. When Wi-Fi cannot be turned on, the reason is shown there instead. The log has a `Wi-Fi:` line with the reason for each failure.
+
 ## Display colours reset after a reboot (Mini Flip)
 
 On the Mini Flip, Luminance, Hue, Saturation and Contrast from Settings › Display can be back at their defaults after a reboot, while Settings still shows the saved values. At start, MainUI loads the four values from `system.json` into keymon's live settings, as stock MainUI does, but sets them on the screen only when one of them is changed in Settings › Display, as stock does too; changing one applies all four. A 1.0.8 test build also set them on the screen at start: on RedOnion Beta 6 and 7 that made GameSwitcher freeze at times and the top of DraStic's screen flicker, and both went away without it, so it was taken out. Setting the saved colours at boot is left to the OS, which can do it at a point in its start-up that is safe for its display driver.

@@ -107,6 +107,13 @@ typedef struct {
     bool timer_failure_logged;
     bool search_keyboard;
     bool wifi_was_visible;
+    /* A connection was made to wifi_join_ssid: if it is not joined by
+     * wifi_join_until, the Wi-Fi page says so, until it is. Joined counts
+     * only once the status was refreshed after the connection (fresh): the
+     * one saved before can still name that network. */
+    bool wifi_join_watch, wifi_join_failed, wifi_join_fresh;
+    char wifi_join_ssid[33];
+    Uint32 wifi_join_until;
     MainUICatalog *apps;
     MainUICatalog *games;
     MainUICatalog *expert;

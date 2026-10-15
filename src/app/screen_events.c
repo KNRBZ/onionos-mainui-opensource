@@ -287,6 +287,8 @@ bool mainui_screen_name_input_key(MainUIApp *ui, const SDL_keysym *key)
                         return true;
                     }
                     ui->settings_page.message[0] = 0;
+                    /* A new attempt ends the watch on an earlier one. */
+                    ui->wifi_join_watch = false;
                     memset(ui->settings_page.password, 0, sizeof ui->settings_page.password);
                 }
                 ui->settings_page.connect_after_password = false;
@@ -472,6 +474,9 @@ bool mainui_screen_settings_page_key(MainUIApp *ui, SDLKey key)
                 : "");
         if (started) {
             memset(ui->settings_page.password, 0, sizeof ui->settings_page.password);
+        }
+        if (started && ui->settings_keyboard == 3) {
+            ui->wifi_join_watch = false;
         }
         ui->settings_keyboard = 0;
     }

@@ -314,6 +314,10 @@ int mainui_settings_page_key(MainUISettingsPage *page, SDLKey key, const char *s
         memset(page, 0, sizeof *page);
         return 0;
     }
+    if (page->message_held) {
+        page->message[0] = 0;
+        page->message_held = false;
+    }
     int count = page->kind == SET_DISPLAY ? 4
                 : page->kind == SET_WIFI  ? (page->wifi ? 1 + page->network_count : 1)
                 : page->kind == SET_ABOUT ? 10
@@ -628,11 +632,11 @@ void mainui_settings_page_draw(const MainUISettingsPage *page, SDL_Surface *scre
     SDL_Rect message_clip = {20, 352, 600, 64};
     SDL_SetClipRect(screen, &message_clip);
     if (page->kind != SET_WIFI || page->wifi) {
-        draw_status(
-            screen, theme,
-            page->kind == SET_WIFI
-                ? (!strcmp(page->message, "Scanning...") ? mainui_translate(83, "Scanning...") : "")
-                : page->message);
+        draw_status(screen, theme,
+                    page->kind == SET_WIFI ? (!strcmp(page->message, "Scanning...")
+                                                  ? mainui_translate(83, "Scanning...")
+                                                  : page->message)
+                                           : page->message);
     }
     SDL_SetClipRect(screen, NULL);
 }

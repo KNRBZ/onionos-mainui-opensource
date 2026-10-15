@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 #include "app/loop.h"
 #include "app/render.h"
+#include "localization/language.h"
 #include "platform/audio.h"
 #include "platform/input.h"
 #include "platform/launch.h"
@@ -27,6 +28,39 @@ static Uint32 timer_tick(Uint32 interval, void *unused)
         SDL_PushEvent(&event);
     }
     return interval;
+}
+
+/* Stock's text for a Wi-Fi connection that failed (its translation 154). */
+#define WIFI_FAILED "Fail to connect\nCheck your password\nOr reboot router"
+/* Joins took up to about 30 s on a noisy channel in testing. */
+#define WIFI_JOIN_MS 30000u
+
+/* After a connection is made: a wrong password shows only as a network that
+ * is never joined. Say so on the Wi-Fi page once the join is overdue, and
+ * take it back if the network is joined after all. */
+static void wifi_join_check(MainUIApp *ui)
+{
+    MainUISettingsPage *page = &ui->settings_page;
+    if (!ui->wifi_join_watch) {
+        return;
+    }
+    if (!page->open || page->kind != SET_WIFI || !page->wifi) {
+        ui->wifi_join_watch = false;
+        return;
+    }
+    if (ui->wifi_join_fresh && ui->device_status.wifi == 1 &&
+        !strcmp(ui->device_status.ssid, ui->wifi_join_ssid)) {
+        if (ui->wifi_join_failed && page->message_held) {
+            page->message[0] = 0;
+            page->message_held = false;
+        }
+        ui->wifi_join_watch = false;
+    }
+    else if (!ui->wifi_join_failed && (Sint32)(SDL_GetTicks() - ui->wifi_join_until) >= 0) {
+        snprintf(page->message, sizeof page->message, "%s", mainui_translate(154, WIFI_FAILED));
+        page->message_held = true;
+        ui->wifi_join_failed = true;
+    }
 }
 
 bool mainui_poll_jobs(MainUIApp *ui)
@@ -60,12 +94,40 @@ bool mainui_poll_jobs(MainUIApp *ui)
                 if (operation == 3 || operation == 4) {
                     ui->next_wifi_scan = SDL_GetTicks() + 3000;
                 }
+                /* Jobs run one at a time: a status refresh done after a
+                 * connection saved the status after it. A scan is no proof:
+                 * it succeeds also when its own refresh could not be saved. */
+                if (completed > 0 && operation == 0) {
+                    ui->wifi_join_fresh = true;
+                }
             }
             if (completed >= 0 && operation && ui->settings_page.open &&
                 ui->settings_page.kind == SET_WIFI) {
-                ui->settings_page.message[0] = 0;
+                if (!ui->settings_page.message_held) {
+                    ui->settings_page.message[0] = 0;
+                }
                 if (!completed && *ui->device_job.adapter.error) {
                     fprintf(stderr, "Wi-Fi: %s\n", ui->device_job.adapter.error);
+                }
+                /* Stock's notice for a connection that failed; turning Wi-Fi
+                 * on says why it could not. Both stay until a button press. */
+                if (!completed && operation == 3) {
+                    ui->wifi_join_watch = false;
+                }
+                if (!completed && (operation == 3 || operation == 5)) {
+                    snprintf(ui->settings_page.message, sizeof ui->settings_page.message, "%s",
+                             operation == 5 && *ui->device_job.adapter.error
+                                 ? ui->device_job.adapter.error
+                                 : mainui_translate(154, WIFI_FAILED));
+                    ui->settings_page.message_held = true;
+                }
+                /* The password is only checked as the network is joined. */
+                if (completed && operation == 3) {
+                    snprintf(ui->wifi_join_ssid, sizeof ui->wifi_join_ssid, "%s",
+                             ui->device_job.ssid);
+                    ui->wifi_join_until = SDL_GetTicks() + WIFI_JOIN_MS;
+                    ui->wifi_join_watch = true;
+                    ui->wifi_join_failed = ui->wifi_join_fresh = false;
                 }
                 if (completed && operation == 4) {
                     mainui_settings_page_scan_results(&ui->settings_page,
@@ -80,7 +142,7 @@ bool mainui_poll_jobs(MainUIApp *ui)
             (Sint32)(SDL_GetTicks() - ui->next_wifi_scan) >= 0) {
             if (mainui_device_job_start(&ui->device_job, &ui->device_adapter, 4, NULL, NULL)) {
                 ui->next_wifi_scan = SDL_GetTicks() + 5500;
-                if (!ui->settings_page.network_count) {
+                if (!ui->settings_page.network_count && !ui->settings_page.message_held) {
                     snprintf(ui->settings_page.message, sizeof ui->settings_page.message,
                              "Scanning...");
                 }
@@ -158,6 +220,7 @@ bool mainui_poll_jobs(MainUIApp *ui)
             ui->settings_page.audio_available = mainui_audio_available();
             ui->settings_page.sleeping = ui->device_status.sleeping;
         }
+        wifi_join_check(ui);
     }
     return true;
 }
