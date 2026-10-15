@@ -63,7 +63,7 @@ typedef struct {
      * or passed over, and whether that L1 is down now. */
     int menu_events_seen;
     bool quiet_l1_armed, quiet_l1_held;
-    bool battery_override;
+    bool battery_override, battery_charging;
     bool start_systems;
     bool refresh_caches;
     bool informational;

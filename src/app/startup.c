@@ -108,6 +108,7 @@ int mainui_setup_session(MainUIApp *ui, int argc, char **argv)
     ui->input_text = options.input_text;
     ui->real_device = options.real_device;
     ui->battery_override = options.battery_override;
+    ui->battery_charging = options.battery_charging;
     ui->start_systems = options.start_systems;
     ui->refresh_caches = options.refresh_caches;
     ui->snapshot_elapsed = options.snapshot_elapsed;
@@ -443,7 +444,8 @@ void mainui_restore_session(MainUIApp *ui)
         mainui_grid_restore(&ui->view, ui->view.total, 0, 4, 2);
     }
     ui->theme.battery_percent = ui->battery_percent;
-    ui->theme.battery_charging = !ui->battery_override && ui->device_status.charging;
+    ui->theme.battery_charging =
+        ui->battery_override ? ui->battery_charging : ui->device_status.charging;
     mainui_menu_view_open(&ui->menu_view, &ui->theme);
     /* Snapshots and scripted input draw at once, with every icon in place. */
     ui->menu_view.defer_selected = !ui->snapshot && !ui->input_script;
