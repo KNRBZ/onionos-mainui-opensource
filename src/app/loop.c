@@ -107,6 +107,9 @@ bool mainui_poll_jobs(MainUIApp *ui)
                 ui->active_at = now;
                 mainui_audio_pause(!resumed && ui->device_status.sleeping == 1);
                 memset(ui->held, 0, sizeof ui->held);
+                /* As on focus loss: a release after sleep is no press. */
+                ui->y_armed = ui->select_armed = ui->start_armed = false;
+                ui->select_brightness = false;
                 SDL_EnableKeyRepeat(0, 0);
                 SDL_Event stale[16];
                 for (int drained = 0; drained < 256; drained += 16) {
