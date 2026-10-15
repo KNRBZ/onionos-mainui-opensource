@@ -470,10 +470,9 @@ static void draw_status(SDL_Surface *screen, MainUITheme *theme, const char *tex
 static void draw_about(const MainUISettingsPage *page, SDL_Surface *screen, MainUITheme *theme)
 {
     const int ids[] = {59, 408, 409, 60, 61, 410, 62, 64, 66, 155};
-    const char *labels[] = {"Model number",  "Model name",       "Max resolution",
-                            "Serial number", "Firmware version", "Onion version",
-                            "CPU frequency", "Memory size",      "Used/total storage",
-                            "Website"};
+    const char *labels[] = {"Model number",       "Model name", "Max resolution", "Serial number",
+                            "Firmware version",   "OS version", "CPU frequency",  "Memory size",
+                            "Used/total storage", "Website"};
     const char *values[] = {
         page->model,   page->device_name, page->max_resolution, page->serial,  page->firmware,
         page->version, page->cpu,         page->memory,         page->storage, page->website};
