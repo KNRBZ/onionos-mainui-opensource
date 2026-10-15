@@ -50,7 +50,7 @@ typedef struct {
     int wifi_signal_level;
     char wifi_address[64];
     int battery_percent, battery_align, battery_offset_x, battery_offset_y;
-    bool battery_visible, battery_fixed;
+    bool battery_visible, battery_fixed, battery_charging;
     SDL_Color battery_color;
     TTF_Font *font, *title_font, *grid_font, *hint_font, *menu_font, *description_font,
         *detail_font;

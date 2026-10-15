@@ -213,12 +213,14 @@ int main(int argc, char **argv)
     state = mainui_device_status(&adapter);
     assert(state.model.lid && state.battery == 63 && state.lid == 0 && state.sleeping == 1);
     put(root, "charging", "1");
-    assert(mainui_device_status(&adapter).battery == 500);
+    state = mainui_device_status(&adapter);
+    assert(state.charging && state.battery == 63);
     put(root, "charging", "0");
     put(root, "percBat", "101");
     assert(mainui_device_status(&adapter).battery == -1);
     put(root, "percBat", "500");
-    assert(mainui_device_status(&adapter).battery == 500);
+    state = mainui_device_status(&adapter);
+    assert(state.charging && state.battery == 500);
     put(root, "percBat", "12junk");
     put(root, "lid", "2");
     put(root, "sleeping", "0");

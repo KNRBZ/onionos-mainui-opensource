@@ -153,6 +153,7 @@ typedef struct {
     bool systems_drawn;
     Uint32 active_at, presented_at;
     int presented_battery, presented_wifi_signal;
+    bool presented_charging;
     bool presented_wifi_online, presented_hotspot;
     char presented_wifi_address[64];
     Uint32 selected_at;

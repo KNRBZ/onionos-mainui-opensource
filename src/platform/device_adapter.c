@@ -586,7 +586,10 @@ MainUIDeviceStatus mainui_device_status(const MainUIDeviceAdapter *adapter)
                    : status.model.id == 283             ? number("/sys/class/gpio/gpio59/value")
                    : status.model.id == 285 || status.model.id == 354 ? axp_charging()
                                                                       : -1;
-    if (charging == 1) {
+    /* On the Mini, Onion writes 500 for the level while charging; the Mini
+     * Plus and Flip keep the level, which is shown beside the charging icon. */
+    status.charging = charging == 1 || status.battery == 500;
+    if (status.charging && (status.battery < 0 || status.battery > 100)) {
         status.battery = 500;
     }
     if (status.model.lid) {

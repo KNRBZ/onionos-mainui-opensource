@@ -91,9 +91,10 @@ static void header_wifi(SDL_Surface *screen, MainUITheme *theme, int left)
 static void header_battery(SDL_Surface *screen, MainUITheme *theme)
 {
     int percent = theme->battery_percent;
+    bool charging = theme->battery_charging || percent == 500;
     /* Stock MainUI's levels (0x16ddc): above 69, 44, 14 and 4 %. Onion's
      * own screens use 90, 60, 30 and 5. */
-    int index = percent == 500  ? 5
+    int index = charging        ? 5
                 : percent <= 4  ? 0
                 : percent <= 14 ? 1
                 : percent <= 44 ? 2
@@ -106,7 +107,8 @@ static void header_battery(SDL_Surface *screen, MainUITheme *theme)
         header_wifi(screen, theme, 640);
         return;
     }
-    bool visible = theme->battery_visible && percent != 500 && icon->w <= 640;
+    /* Stock hides the percentage while charging; it is shown when known. */
+    bool visible = theme->battery_visible && percent <= 100 && icon->w <= 640;
     char value[32];
     snprintf(value, sizeof value, "%d%%", percent);
     SDL_Surface *text =

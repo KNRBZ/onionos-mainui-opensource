@@ -164,6 +164,7 @@ bool mainui_poll_jobs(MainUIApp *ui)
             ui->device_status = mainui_device_status(&ui->device_adapter);
             if (!ui->battery_override) {
                 ui->theme.battery_percent = ui->device_status.battery;
+                ui->theme.battery_charging = ui->device_status.charging;
             }
             if (resumed || previous_sleep != ui->device_status.sleeping) {
                 ui->active_at = now;

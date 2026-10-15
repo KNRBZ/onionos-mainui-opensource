@@ -443,6 +443,7 @@ void mainui_restore_session(MainUIApp *ui)
         mainui_grid_restore(&ui->view, ui->view.total, 0, 4, 2);
     }
     ui->theme.battery_percent = ui->battery_percent;
+    ui->theme.battery_charging = !ui->battery_override && ui->device_status.charging;
     mainui_menu_view_open(&ui->menu_view, &ui->theme);
     /* Snapshots and scripted input draw at once, with every icon in place. */
     ui->menu_view.defer_selected = !ui->snapshot && !ui->input_script;
