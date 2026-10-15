@@ -696,7 +696,8 @@ void mainui_setup_render(MainUIApp *ui)
 int mainui_teardown(MainUIApp *ui)
 {
     mainui_menu_button_close();
-    if (ui->catalog && !ui->library && !ui->home && !ui->snapshot &&
+    /* A launch saved it already, for the same view: no input came since. */
+    if (ui->catalog && !ui->library && !ui->home && !ui->snapshot && !ui->launch_pending &&
         !mainui_positions_save(ui->catalog, &ui->view)) {
         fprintf(stderr, "Could not save ROM-list position on exit.\n");
     }
