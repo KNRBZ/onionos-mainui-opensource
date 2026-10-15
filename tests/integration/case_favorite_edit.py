@@ -413,10 +413,60 @@ for name, inside in (("drop-into-empty-folder", 0), ("drop-into-long-folder", 10
     opened = capture(sd, name + "-open", "EDDDSEDSE" + "E" + "U")
     assert capture(sd, name + "-open-navigated", "EE" + "U") == opened, name
 
-# A game already in that folder, dropped on it from the parent, goes last.
+# A game dropped on the folder it was cut from, where it would change
+# nothing, moves up into the open folder, after its games (#30).
+def assignments(sd):
+    return {row["key"]: row for row in map(json.loads,
+            (sd / "Roms/favourite-folders.json").read_text().splitlines()) if "key" in row}
+
 sd = folder_fixture("drop-own-folder", 3)
 capture(sd, "drop-own-folder", "EE" + "D" + "SE" + "B" + "SE")
-assert inside_keys(sd) == [f"/mnt/SDCARD/Roms/FC/{i:02}.nes" for i in (4, 5, 3)], inside_keys(sd)
+assert inside_keys(sd) == [f"/mnt/SDCARD/Roms/FC/{i:02}.nes" for i in (4, 5)], inside_keys(sd)
+assert inside_keys(sd, "") == [f"/mnt/SDCARD/Roms/FC/{i:02}.nes" for i in (0, 1, 2, 3)], \
+    inside_keys(sd, "")
+
+# The reported case: Favorites holds one folder and nothing else, so its only
+# game has no other row to be pasted on at the root.
+sd = fixture("only-game-up")
+write_lines(sd / "Roms/favourite.json",
+            [dict(label="Mario", rompath="/mnt/SDCARD/Roms/FC/00.nes", type=5)])
+write_lines(sd / "Roms/favourite-folders.json",
+            [dict(schema=1, generation=0),
+             dict(kind="folder", id="f", parent="", name="Platformers", order=0),
+             dict(kind="item", key="/mnt/SDCARD/Roms/FC/00.nes", type=5, folder="f", order=0)])
+# Open Favorites and Platformers, Move Mario, back (Platformers selected), Paste.
+moved = capture(sd, "only-game-up", "EE" + "D" + "SE" + "B" + "SE")
+assert assignments(sd)["/mnt/SDCARD/Roms/FC/00.nes"]["folder"] == "", assignments(sd)
+assert inside_keys(sd) == []
+assert capture(sd, "only-game-up-reopened", "E" + "D") == moved
+
+# Between sibling folders a game still goes into the folder it is pasted on.
+def siblings(name):
+    sd = fixture(name)
+    write_lines(sd / "Roms/favourite.json",
+                [dict(label=f"Game {i:02}", rompath=f"/mnt/SDCARD/Roms/FC/{i:02}.nes", type=5)
+                 for i in range(3)])
+    write_lines(sd / "Roms/favourite-folders.json",
+                [dict(schema=1, generation=0),
+                 dict(kind="folder", id="f", parent="", name="First", order=0),
+                 dict(kind="folder", id="g", parent="", name="Second", order=1)] +
+                [dict(kind="item", key=f"/mnt/SDCARD/Roms/FC/{i:02}.nes", type=5, folder="f",
+                      order=i) for i in range(3)])
+    return sd
+
+sd = siblings("sibling-folder")
+# Open First, Move Game 00, back (First selected), Down to Second, Paste.
+capture(sd, "sibling-folder", "EE" + "D" + "SE" + "B" + "D" + "SE")
+assert inside_keys(sd) == [f"/mnt/SDCARD/Roms/FC/{i:02}.nes" for i in (1, 2)], inside_keys(sd)
+assert inside_keys(sd, "g") == ["/mnt/SDCARD/Roms/FC/00.nes"], inside_keys(sd, "g")
+
+# Pasted on another game in the folder it was cut from, it only moves there.
+sd = siblings("within-folder")
+# Open First, Move Game 00, Down to Game 02, Paste.
+capture(sd, "within-folder", "EE" + "D" + "SE" + "DD" + "SE")
+assert sorted(inside_keys(sd)) == [f"/mnt/SDCARD/Roms/FC/{i:02}.nes" for i in range(3)]
+assert inside_keys(sd)[0] != "/mnt/SDCARD/Roms/FC/00.nes", inside_keys(sd)
+assert inside_keys(sd, "g") == [] and inside_keys(sd, "") == []
 
 # A folder pasted on a folder takes its place; nothing goes inside.
 sd = fixture("folder-on-folder")
@@ -431,4 +481,5 @@ rows = {row["id"]: row for row in map(json.loads,
         (sd / "Roms/favourite-folders.json").read_text().splitlines()) if "id" in row}
 assert rows["a"]["parent"] == rows["b"]["parent"] == "", rows
 assert rows["b"]["order"] < rows["a"]["order"], rows
-print("A game pasted on a folder goes into it, last; a folder pasted on one takes its place")
+print("A game pasted on a folder goes into it, last, or up a level when cut from it; "
+      "a folder pasted on one takes its place")
