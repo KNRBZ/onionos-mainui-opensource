@@ -569,7 +569,7 @@ static bool compose_full_frame(MainUIApp *ui)
                         ui->favorites,
                         ui->library->items[ui->library->visible[ui->view.start + i]].rom);
                 }
-                else if (ui->catalog && !ui->library) {
+                else if (ui->catalog && !ui->library && ui->favorites && ui->favorites->count) {
                     cJSON *record = mainui_catalog_record(
                         ui->catalog, mainui_browser_index(ui->catalog, ui->view.start + i));
                     const cJSON *rom = cJSON_GetObjectItemCaseSensitive(record, "rompath");
