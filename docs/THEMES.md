@@ -63,6 +63,7 @@ Without a runtime handoff folder (host development builds), the new fallback app
 
 A theme font must contain the characters of the languages its users choose; neither stock nor Open MainUI substitutes another font for missing characters. A Latin-only font shows boxes for Chinese, Japanese, Korean or Cyrillic labels.
 No font shipped with Onion contains Arabic or Bengali, and the SDL_ttf version Onion uses cannot join or reorder those scripts, so those languages do not display correctly with any theme.
+A title whose first letter is Hebrew or Arabic and that does not fit its row shows its right end, where it begins, and scrolls right from there, to be read in its own direction. While a cover is shown it stops at the cover's pane, so its beginning is not hidden. Other titles are unchanged.
 
 ## Safe margins and borders
 
