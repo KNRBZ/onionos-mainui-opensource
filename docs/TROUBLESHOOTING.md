@@ -24,6 +24,7 @@ The first line of each start names the build: `[startup] Open MainUI <version>, 
 * `[return]` and `[restore]`: why the screen left for a game or app could not be shown again on return.
 * `[write]`: a file that could not be saved, with the reason.
 * `[settings]`: a setting that could not be saved to `system.json`, or, at start, a `system.json` too damaged to load into keymon's live settings (as stock does on every start); those are then left as they were.
+* `[wifi]`: why a Wi-Fi action failed (a command wpa_supplicant refused, or a network not joined within 30 seconds), when the connection comes or goes and to which network, a saved network wpa_supplicant joined by itself and the DHCP restart for it, and saved networks enabled again. Passwords are never logged.
 * `[battery]`: on the Mini Plus and Flip, Onion's `axp_test` did not answer within half a second, so the charging icon is not checked for a minute.
 * `[launch]`: a Y press ignored because the Y shortcut is an app or tool (keymon's) or `keymap.json` cannot be read.
 * `[delete]`: an interrupted ROM deletion resolved automatically.
@@ -32,7 +33,7 @@ The first line of each start names the build: `[startup] Open MainUI <version>, 
 ## Wi-Fi does not connect
 
 Settings › Wi-Fi shows stock's "Fail to connect, check your password or reboot router" at the bottom when a connection could not be made, or when the network was not joined within 30 seconds of entering its password, which is how a wrong password shows.
-The notice goes away when the network is joined after all, or with the next button press. When Wi-Fi cannot be turned on, the reason is shown there instead. The log has a `Wi-Fi:` line with the reason for each failure.
+The notice goes away when the network is joined after all, or with the next button press. When Wi-Fi cannot be turned on, the reason is shown there instead. The log has a `[wifi]` line with the reason for each failure.
 
 Networks you have joined stay saved, unlike stock MainUI, which keeps only the last one.
 Choosing a saved network in Settings › Wi-Fi connects with its saved password, without asking; if that connection fails, choosing it again asks for the password, and the one entered is saved as a new entry beside the old one, which is kept; the newer one is used from then on.

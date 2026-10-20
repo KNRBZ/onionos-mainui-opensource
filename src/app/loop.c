@@ -63,6 +63,8 @@ static void wifi_join_check(MainUIApp *ui)
         snprintf(page->message, sizeof page->message, "%s", mainui_translate(154, WIFI_FAILED));
         page->message_held = true;
         ui->wifi_join_failed = true;
+        fprintf(stderr, "[wifi] %s not joined within %u s\n", ui->wifi_join_ssid,
+                WIFI_JOIN_MS / 1000);
         /* Its saved password may be wrong: choosing it again asks for one. */
         snprintf(page->retry_ssid, sizeof page->retry_ssid, "%s", ui->wifi_join_ssid);
     }
@@ -106,13 +108,14 @@ bool mainui_poll_jobs(MainUIApp *ui)
                     ui->wifi_join_fresh = true;
                 }
             }
+            /* Why a Wi-Fi action failed, also with the Wi-Fi page closed. */
+            if (!completed && operation && *ui->device_job.adapter.error) {
+                fprintf(stderr, "[wifi] %s\n", ui->device_job.adapter.error);
+            }
             if (completed >= 0 && operation && ui->settings_page.open &&
                 ui->settings_page.kind == SET_WIFI) {
                 if (!ui->settings_page.message_held) {
                     ui->settings_page.message[0] = 0;
-                }
-                if (!completed && *ui->device_job.adapter.error) {
-                    fprintf(stderr, "Wi-Fi: %s\n", ui->device_job.adapter.error);
                 }
                 /* Stock's notice for a connection that failed; turning Wi-Fi
                  * on says why it could not. Both stay until a button press. */
