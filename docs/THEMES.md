@@ -62,7 +62,16 @@ A change to or from Arabic (`ar.lang`) or Bengali (`bn.lang`) restarts MainUI in
 Without a runtime handoff folder (host development builds), the new fallback applies from the next start instead. Other changes with themes whose fonts all load are not affected.
 
 A theme font must contain the characters of the languages its users choose; neither stock nor Open MainUI substitutes another font for missing characters. A Latin-only font shows boxes for Chinese, Japanese, Korean or Cyrillic labels.
-No font shipped with Onion contains Arabic or Bengali, and the SDL_ttf version Onion uses cannot join or reorder those scripts, so those languages do not display correctly with any theme.
+
+Arabic and Bengali need two things that neither Onion nor Open MainUI includes:
+
+- A font with their letters, as the theme's font or a fallback font. No font shipped with Onion has them.
+- A library that shapes the text before SDL_ttf draws it, preloaded into MainUI (`LD_PRELOAD`), which Onion's `runtime.sh` would have to add.
+  Shaping, as HarfBuzz does it, picks each Arabic letter's joined form and places Bengali's vowel signs and conjuncts; the SDL_ttf Onion uses draws each character on its own.
+  Right-to-left text must also be put in display order, by the Unicode bidirectional algorithm (as in FriBidi).
+
+Without both, these languages show boxes, or letters that are unjoined and in the wrong order.
+Open MainUI's part is to restart on a change to or from them, so `runtime.sh` can choose the library, and to show right-to-left titles from their start.
 A title whose first letter is Hebrew or Arabic and that does not fit its row shows its right end, where it begins, and scrolls right from there, to be read in its own direction. While a cover is shown it stops at the cover's pane, so its beginning is not hidden. Other titles are unchanged.
 
 ## Safe margins and borders
