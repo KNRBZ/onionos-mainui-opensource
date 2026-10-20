@@ -31,15 +31,19 @@ The first line of each start names the build: `[startup] Open MainUI <version>, 
 
 ## Wi-Fi does not connect
 
-Settings › Wi-Fi shows stock's "Fail to connect, check your password or reboot router" at the bottom when a connection could not be made, or when the network was not joined within 30 seconds of entering its password, which is how a wrong password shows. The notice goes away when the network is joined after all, or with the next button press. When Wi-Fi cannot be turned on, the reason is shown there instead. The log has a `Wi-Fi:` line with the reason for each failure.
+Settings › Wi-Fi shows stock's "Fail to connect, check your password or reboot router" at the bottom when a connection could not be made, or when the network was not joined within 30 seconds of entering its password, which is how a wrong password shows.
+The notice goes away when the network is joined after all, or with the next button press. When Wi-Fi cannot be turned on, the reason is shown there instead. The log has a `Wi-Fi:` line with the reason for each failure.
 
 ## Display colours reset after a reboot (Mini Flip)
 
-On the Mini Flip, Luminance, Hue, Saturation and Contrast from Settings › Display can be back at their defaults after a reboot, while Settings still shows the saved values. At start, MainUI loads the four values from `system.json` into keymon's live settings, as stock MainUI does, but sets them on the screen only when one of them is changed in Settings › Display, as stock does too; changing one applies all four. A 1.0.8 test build also set them on the screen at start: on RedOnion Beta 6 and 7 that made GameSwitcher freeze at times and the top of DraStic's screen flicker, and both went away without it, so it was taken out. Setting the saved colours at boot is left to the OS, which can do it at a point in its start-up that is safe for its display driver.
+On the Mini Flip, Luminance, Hue, Saturation and Contrast from Settings › Display can be back at their defaults after a reboot, while Settings still shows the saved values.
+At start, MainUI loads the four values from `system.json` into keymon's live settings, as stock MainUI does, but sets them on the screen only when one of them is changed in Settings › Display, as stock does too; changing one applies all four.
+A 1.0.8 test build also set them on the screen at start: on RedOnion Beta 6 and 7 that made GameSwitcher freeze at times and the top of DraStic's screen flicker, and both went away without it, so it was taken out. Setting the saved colours at boot is left to the OS, which can do it at a point in its start-up that is safe for its display driver.
 
 ## A console lists file names instead of its gamelist titles
 
-When a console's `miyoogamelist.xml` cannot be used at all (for example an empty file, or one with no `<gameList>`), the log says `miyoogamelist.xml is unusable (<reason>); listing the ROM files instead`, and the list is built from the file names. The XML is never changed. A file that cannot be read because of a card or permission error is different: the log says `could not be read`, and the previous list is kept. Most sloppy files are read as they are: unescaped `&` or `<` in titles and Windows-1252 accents work. Once the file is fixed, run **Refresh roms** for that console. See [CATALOG_CACHE.md](CATALOG_CACHE.md#xml-import-checkpoint).
+When a console's `miyoogamelist.xml` cannot be used at all (for example an empty file, or one with no `<gameList>`), the log says `miyoogamelist.xml is unusable (<reason>); listing the ROM files instead`, and the list is built from the file names. The XML is never changed.
+A file that cannot be read because of a card or permission error is different: the log says `could not be read`, and the previous list is kept. Most sloppy files are read as they are: unescaped `&` or `<` in titles and Windows-1252 accents work. Once the file is fixed, run **Refresh roms** for that console. See [CATALOG_CACHE.md](CATALOG_CACHE.md#xml-import-checkpoint).
 
 ## Resolving an interrupted ROM deletion
 
@@ -55,6 +59,7 @@ To continue, run **Refresh roms** for that console, from inside its list or from
 * the ROM you were deleting may still exist under its staged name. Staged files are not shown in the list.
 * if a file with the original name exists, it stays and is listed normally.
 
-Afterwards, look in that console's ROM folder for files ending in `.mainui-delete` or `.mainui-delete.` plus 16 hex digits. To keep one, rename it back to its original name, removing that suffix, and run Refresh roms again. Otherwise delete it with a file manager or on your computer. If both copies exist, compare them before removing either. With [logging enabled](#getting-a-log), the log names the staged file when recovery refuses and again when Refresh roms removes the journal.
+Afterwards, look in that console's ROM folder for files ending in `.mainui-delete` or `.mainui-delete.` plus 16 hex digits. To keep one, rename it back to its original name, removing that suffix, and run Refresh roms again.
+Otherwise delete it with a file manager or on your computer. If both copies exist, compare them before removing either. With [logging enabled](#getting-a-log), the log names the staged file when recovery refuses and again when Refresh roms removes the journal.
 
 How the journal, staging and automatic recovery work is described in [RESOURCE_LIMITS.md](RESOURCE_LIMITS.md#rom-deletion-recovery).
