@@ -34,6 +34,11 @@ The first line of each start names the build: `[startup] Open MainUI <version>, 
 Settings › Wi-Fi shows stock's "Fail to connect, check your password or reboot router" at the bottom when a connection could not be made, or when the network was not joined within 30 seconds of entering its password, which is how a wrong password shows.
 The notice goes away when the network is joined after all, or with the next button press. When Wi-Fi cannot be turned on, the reason is shown there instead. The log has a `Wi-Fi:` line with the reason for each failure.
 
+Networks you have joined stay saved, unlike stock MainUI, which keeps only the last one.
+Choosing a saved network in Settings › Wi-Fi connects with its saved password, without asking; if that connection fails, choosing it again asks for the password, and the one entered is saved as a new entry beside the old one, which is kept; the newer one is used from then on.
+When MainUI starts, and after you choose a network, every saved network is left able to connect, so wpa_supplicant joins whichever saved network is in reach (by its own priority rules) at home, at work, or when the current one goes away.
+When it joins another one by itself while MainUI runs, MainUI starts the DHCP client again for an address on it.
+
 ## Display colours reset after a reboot (Mini Flip)
 
 On the Mini Flip, Luminance, Hue, Saturation and Contrast from Settings › Display can be back at their defaults after a reboot, while Settings still shows the saved values.

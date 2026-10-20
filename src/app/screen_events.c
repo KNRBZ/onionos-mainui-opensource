@@ -511,13 +511,14 @@ bool mainui_screen_settings_page_key(MainUIApp *ui, SDLKey key)
         snprintf(
             ui->settings_page.message, sizeof ui->settings_page.message, "%s",
             started && (ui->settings_keyboard == 4 || ui->settings_keyboard == 5) ? "Scanning..."
-            : !started && ui->settings_keyboard == 3 && ui->settings_page.wifi
+            : !started && (ui->settings_keyboard == 3 || ui->settings_keyboard == 7) &&
+                    ui->settings_page.wifi
                 ? (busy ? "Wi-Fi is busy. Try again when it finishes." : "Cannot start connecting.")
                 : "");
         if (started) {
             memset(ui->settings_page.password, 0, sizeof ui->settings_page.password);
         }
-        if (started && ui->settings_keyboard == 3) {
+        if (started && (ui->settings_keyboard == 3 || ui->settings_keyboard == 7)) {
             ui->wifi_join_watch = false;
         }
         ui->settings_keyboard = 0;
