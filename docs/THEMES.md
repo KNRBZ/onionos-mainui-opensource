@@ -58,7 +58,8 @@ If a theme font cannot be opened, Open MainUI falls back to a built-in font chos
 These are looked up in `miyoo/app` and then, on the device, in `/customer/app` on internal flash.
 
 Stock reloads its fonts immediately when the language is changed. Open MainUI chooses the fallback when the theme is loaded, so when a theme relies on a fallback font and the change switches between English and another language, it restarts itself: Onion starts MainUI again and it reopens Settings on the language row.
-Without a runtime handoff folder (host development builds), the new fallback applies from the next start instead. Themes whose fonts all load are not affected.
+A change to or from Arabic (`ar.lang`) or Bengali (`bn.lang`) restarts MainUI in the same way with any theme, so Onion's `runtime.sh` can decide again, as it starts MainUI, whether to preload a library that shapes these scripts.
+Without a runtime handoff folder (host development builds), the new fallback applies from the next start instead. Other changes with themes whose fonts all load are not affected.
 
 A theme font must contain the characters of the languages its users choose; neither stock nor Open MainUI substitutes another font for missing characters. A Latin-only font shows boxes for Chinese, Japanese, Korean or Cyrillic labels.
 No font shipped with Onion contains Arabic or Bengali, and the SDL_ttf version Onion uses cannot join or reorder those scripts, so those languages do not display correctly with any theme.
