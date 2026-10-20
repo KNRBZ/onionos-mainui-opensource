@@ -40,6 +40,12 @@ Choosing a saved network in Settings › Wi-Fi connects with its saved password,
 When MainUI starts, and after you choose a network, every saved network is left able to connect, so wpa_supplicant joins whichever saved network is in reach (by its own priority rules) at home, at work, or when the current one goes away.
 When it joins another one by itself while MainUI runs, MainUI starts the DHCP client again for an address on it.
 
+## Battery drains faster with Wi-Fi connected
+
+MainUI never changes Wi-Fi power save; `iw dev wlan0 get power_save` shows whether it is on.
+When Wi-Fi is already running as MainUI starts, MainUI keeps it as it was started, power save included, and Onion's own Wi-Fi start (`update_networking.sh`) turns power save off. When MainUI starts Wi-Fi itself, as when it is turned on in Settings › Wi-Fi, the Wi-Fi driver's default applies, which is power save on.
+To save battery, turn power save on with `iw dev wlan0 set power_save on`, or turn Wi-Fi off while it is not needed; with power save on, network services and netplay can respond more slowly.
+
 ## Display colours reset after a reboot (Mini Flip)
 
 On the Mini Flip, Luminance, Hue, Saturation and Contrast from Settings › Display can be back at their defaults after a reboot, while Settings still shows the saved values.
