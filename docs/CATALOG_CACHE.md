@@ -55,7 +55,7 @@ Existing caches are preserved unless `--refresh-caches` is explicitly requested.
 Without XML, only names and directory metadata are scanned, and folders named `Imgs` or `Manuals` (in any case) or the console's image folder are never listed, and a folder is listed only when a file matching the console's `extlist` lies somewhere below it, so empty folders and game data folders (a ScummVM game's `AUDIO` or `DRIVERS`, a port's data) are left out; ROM contents are not read and `disp` strips the extension.
 An empty or missing `extlist` matches every file with an extension, as in stock, except `miyoogamelist.xml`, `gamelist.xml`, ROM list caches (`*_cache*.db` and their build, journal and deletion files) and the copy of a ROM held while it is deleted.
 As in stock, a file ending in `.bin` is left out when a `.cue` file of the same name is in the same folder (a folder or link named so does not count), but only when the `extlist` lists `.cue` files too (or is empty): stock also hides it when the `.cue` is not listed, which leaves no entry for the game.
-With XML, `disp` comes from `<name>`. Shortname filesystem rebuilds now resolve Arcade labels from the Onion name file. Both pinyin fields now store [reference-style initials](SEARCH_METADATA_THEME.md).
+With XML, `disp` comes from `<name>`. Shortname filesystem rebuilds now resolve Arcade labels from the Onion name file. Both pinyin fields store the same initials, which Search matches. Stock can fill `cpinyin` from a Chinese name instead; Onion's arcade name list has no Chinese names, so with Onion both fields would hold the same text.
 `tools/test_cache_build.py` verifies nested paths, quoted system names, integrity, explicit refresh and failed publication.
 
 

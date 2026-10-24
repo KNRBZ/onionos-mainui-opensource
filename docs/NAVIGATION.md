@@ -20,6 +20,10 @@ A main-menu tab Onion leaves in `/tmp/state.json` opens when MainUI starts, as w
 A tab opens also when it is hidden on the main menu, and B goes back to the main menu with that tab selected. As stock does, MainUI removes `state.json` once it has read it, so a later start without a new one, such as after keymon's GameSwitcher, is on the main menu; stock opens the main menu there too.
 
 On a launch, MainUI writes `state.json` with the main menu and the open tab only, which is what Onion's scripts read from it (Game List Options and Random Game take the tab). Stock writes every open screen, down to the ROM folder. MainUI comes back to that folder, with each parent folder's selection, from its own return file (`mainui-return.json`), written at the same moment.
+
+A game is launched with `LD_PRELOAD=/mnt/SDCARD/miyoo/app/../lib/libpadsp.so "<launch script>" "<ROM>"`, the command Onion's own launchers write too (GameSwitcher, Random Game, the start after boot and runtime.sh's own rewrite).
+Stock MainUI leaves the preload out for a console with `noaudiofix` (Onion's NDS has it) or with `audiofix` off in `system.json`, adds `PADSP_EN_FLIP=1` for an app with `autoflip`, and offers to create a swap file for a console with `useswap`.
+Onion's launchers do none of that and Onion turns swap on at every start, so MainUI launches as they do and the same game starts the same way from either.
 Neither file is written when keymon kills MainUI (for GameSwitcher, say), and stock's isn't either.
 Onion's `reset_list.sh` (Game List Options' list reset, also run by the ScummVM and Ports importers) sets the last screen's position in `state.json` to the top: in stock that is the ROM list, which reopens at its first game.
 Here that screen is the tab, and the return file is followed instead, so the rebuilt list reopens on the game launched, or at the same row, kept within the list, when that game is gone.
