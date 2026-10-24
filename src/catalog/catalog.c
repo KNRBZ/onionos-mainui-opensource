@@ -1650,3 +1650,83 @@ cJSON *mainui_catalog_record(MainUICatalog *catalog, int index)
     }
     return record;
 }
+
+static bool within_root(const char *path, const char *root)
+{
+    size_t length = strlen(root);
+    return length && !strncmp(path, root, length) && path[length] == '/';
+}
+
+static void set_source(MainUISource *out, const char *label, const char *root, const char *images)
+{
+    snprintf(out->label, sizeof out->label, "%s", label ? label : "");
+    snprintf(out->rom_root, sizeof out->rom_root, "%s", root);
+    snprintf(out->images, sizeof out->images, "%s", images ? images : "");
+}
+
+/* A launcher outside the catalog: its folder's config.json, read as a
+ * console's (label, else the folder's name; rompath; imgpath, else Imgs). */
+static bool launcher_source(const MainUICatalog *catalog, const char *launcher, const char *rom,
+                            MainUISource *out)
+{
+    char folder[MAINUI_PATH_MAX], config[MAINUI_PATH_MAX], root[MAINUI_PATH_MAX],
+        images[MAINUI_PATH_MAX];
+    snprintf(folder, sizeof folder, "%s", launcher);
+    char *slash = strrchr(folder, '/');
+    if (!slash || !mainui_path_within(launcher, catalog->sd)) {
+        return false;
+    }
+    *slash = 0;
+    if (!mainui_catalog_path(config, catalog->sd, folder, "config.json")) {
+        return false;
+    }
+    char *text = mainui_read_text(config, 1024 * 1024);
+    cJSON *json = text ? cJSON_Parse(text) : NULL;
+    free(text);
+    const cJSON *label = cJSON_GetObjectItemCaseSensitive(json, "label");
+    const cJSON *roms = cJSON_GetObjectItemCaseSensitive(json, "rompath");
+    const cJSON *art = cJSON_GetObjectItemCaseSensitive(json, "imgpath");
+    bool ok = cJSON_IsString(roms) && *roms->valuestring &&
+              mainui_catalog_path(root, catalog->sd, folder, roms->valuestring) &&
+              mainui_path_within(root, catalog->sd) && within_root(rom, root) &&
+              mainui_catalog_path(images, catalog->sd, folder,
+                                  cJSON_IsString(art) ? art->valuestring : "Imgs");
+    if (ok) {
+        set_source(out, cJSON_IsString(label) ? label->valuestring : strrchr(folder, '/') + 1, root,
+                   images);
+    }
+    cJSON_Delete(json);
+    return ok;
+}
+
+bool mainui_catalog_source(const MainUICatalog *catalog, const char *rom, const char *launch,
+                           MainUISource *out)
+{
+    char host[MAINUI_PATH_MAX], launcher[MAINUI_PATH_MAX];
+    if (!catalog || !rom || !out || !mainui_catalog_path(host, catalog->sd, catalog->sd, rom)) {
+        return false;
+    }
+    memset(out, 0, sizeof *out);
+    if (launch && *launch && mainui_catalog_path(launcher, catalog->sd, catalog->sd, launch)) {
+        /* Consoles can share a ROM folder: the launcher tells them apart. */
+        for (int i = 0; i < catalog->pages[0].count; ++i) {
+            const MainUIEntry *system = &catalog->pages[0].entries[i];
+            if (system->launch && !strcmp(system->launch, launcher) &&
+                within_root(host, system->path)) {
+                set_source(out, system->label, system->path, system->images);
+                return true;
+            }
+        }
+        if (launcher_source(catalog, launcher, host, out)) {
+            return true;
+        }
+    }
+    for (int i = 0; i < catalog->pages[0].count; ++i) {
+        const MainUIEntry *system = &catalog->pages[0].entries[i];
+        if (within_root(host, system->path)) {
+            set_source(out, system->label, system->path, system->images);
+            return true;
+        }
+    }
+    return false;
+}

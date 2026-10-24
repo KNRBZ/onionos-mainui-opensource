@@ -57,6 +57,19 @@ typedef struct {
     bool unreadable;
 } MainUICatalog;
 
+/* The console a game belongs to: its label, ROM folder and image folder. */
+typedef struct {
+    char label[256], rom_root[MAINUI_PATH_MAX], images[MAINUI_PATH_MAX];
+} MainUISource;
+
+/* The console of a game by its launcher, as saved with a Favorite or Recent,
+ * or as the open console's: one of the catalog's consoles with that launcher,
+ * else the launcher's own config.json (an Expert console while Games is
+ * open). The ROM must lie in that console's ROM folder. Without a usable
+ * launcher, the first console whose ROM folder holds the ROM, as before. */
+bool mainui_catalog_source(const MainUICatalog *catalog, const char *rom, const char *launch,
+                           MainUISource *out);
+
 /* Release all owned fields and clear the entry; entry must be non-NULL. */
 void mainui_entry_close(MainUIEntry *entry);
 /* Initialize a zeroed catalog from SD/Emu. Close even after failure. No ROM

@@ -26,7 +26,40 @@ void mainui_preview_close(MainUIPreview *preview)
     *preview = (MainUIPreview){0};
 }
 
-static bool image_path(char out[MAINUI_PATH_MAX], MainUICatalog *catalog,
+static uint64_t mix(uint64_t hash, const void *data, size_t length)
+{
+    const unsigned char *bytes = data;
+    for (size_t i = 0; i < length; i++) {
+        hash = (hash ^ bytes[i]) * 1099511628211u;
+    }
+    return hash;
+}
+
+/* The console of a saved game, kept for the last 6 looked up. */
+static const MainUISource *saved_source(MainUIPreview *preview, const MainUICatalog *catalog,
+                                        const char *rom, const char *launch)
+{
+    uint64_t hash = mix(14695981039346656037u, &catalog, sizeof catalog);
+    hash = mix(hash, rom ? rom : "", rom ? strlen(rom) + 1 : 1);
+    hash = mix(hash, launch ? launch : "", launch ? strlen(launch) + 1 : 1);
+    int slot = 0;
+    for (int i = 0; i < 6; i++) {
+        if (preview->sources[i].used && preview->sources[i].hash == hash) {
+            preview->sources[i].used = ++preview->clock;
+            return preview->sources[i].found ? &preview->sources[i].source : NULL;
+        }
+        if (preview->sources[i].used < preview->sources[slot].used) {
+            slot = i;
+        }
+    }
+    preview->sources[slot].hash = hash;
+    preview->sources[slot].used = ++preview->clock;
+    preview->sources[slot].found =
+        mainui_catalog_source(catalog, rom, launch, &preview->sources[slot].source);
+    return preview->sources[slot].found ? &preview->sources[slot].source : NULL;
+}
+
+static bool image_path(MainUIPreview *preview, char out[MAINUI_PATH_MAX], MainUICatalog *catalog,
                        const MainUILibrary *library, int selected)
 {
     if (!catalog || selected < 0) {
@@ -42,17 +75,17 @@ static bool image_path(char out[MAINUI_PATH_MAX], MainUICatalog *catalog,
         const MainUILibraryItem *item = &library->items[library->visible[selected]];
         rom = item->rom;
         saved = json_string(item->json, "imgpath");
-        /* Find the source system by ROM-root containment. Search identities
-         * were normalized while reading Recent records. */
-        for (int i = 0; i < catalog->pages[0].count; i++) {
-            MainUIEntry *system = &catalog->pages[0].entries[i];
-            char host_rom[MAINUI_PATH_MAX];
-            if (mainui_catalog_path(host_rom, catalog->sd, catalog->sd, rom) &&
-                !strncmp(host_rom, system->path, strlen(system->path)) &&
-                host_rom[strlen(system->path)] == '/') {
-                images = system->images;
-                root = system->path;
-                break;
+        /* An absolute saved PNG path needs no console. A relative one is in
+         * its console's ROM folder, and without one the cover is looked for in
+         * the console's image folder: the console found by the saved
+         * launcher, as Game Info finds it. */
+        bool absolute = saved && (strstr(saved, ".png") || strstr(saved, ".PNG")) &&
+                        (saved[0] == '/' || saved[0] == '\\');
+        if (!absolute) {
+            const MainUISource *source = saved_source(preview, catalog, item->rom, item->launch);
+            if (source) {
+                images = source->images;
+                root = source->rom_root;
             }
         }
     }
@@ -233,7 +266,7 @@ void mainui_preview_request_within(MainUIPreview *preview, MainUICatalog *catalo
     bool synchronous = wait_ms == MAINUI_PREVIEW_WAIT_FOREVER;
     Uint32 deadline = SDL_GetTicks() + wait_ms;
     char path[MAINUI_PATH_MAX] = "";
-    image_path(path, catalog, library, selected);
+    image_path(preview, path, catalog, library, selected);
     const char *directory = catalog ? catalog->pages[catalog->depth].path : "";
     int folder = library ? library->current : -1;
     if (strcmp(path, preview->key) || selected != preview->prefetch_selected ||
@@ -291,7 +324,7 @@ void mainui_preview_request_within(MainUIPreview *preview, MainUICatalog *catalo
             int64_t index = (int64_t)selected + offsets[preview->prefetch_next++];
             char neighbor[MAINUI_PATH_MAX] = "";
             if (index < 0 || index >= total ||
-                !image_path(neighbor, catalog, library, (int)index) ||
+                !image_path(preview, neighbor, catalog, library, (int)index) ||
                 cached_image(preview, neighbor, false)) {
                 continue;
             }
