@@ -15,6 +15,7 @@ A folder's cover is `<image directory>/<folder name>.png` at any depth, with its
 A folder and a ROM with the same name without its extension, such as `Zelda` and `Zelda.nes`, show the same `Zelda.png`, anywhere in the console: folders and ROMs in subfolders all use the one image directory, as two ROMs of the same name in different subfolders already share an image. Favorites folders show no cover.
 A Favorite or Recent whose saved imgpath is not an absolute PNG path looks for its cover in its console's image folder.
 Its console, as Game Info names it, is the one with its saved launcher, since consoles can share a ROM folder, or for an Expert console while Games is open, the one its launcher's `config.json` describes. Without a usable launcher it is the first console whose ROM folder holds the game, as before.
+Covers are read once per run, by design: MainUI keeps the last 32 covers it decoded and the covers it found missing, and the console found for the last 6 saved games, for as long as it runs. Cover files and console configurations are not expected to change while MainUI runs, so a PNG added, replaced or removed meanwhile shows from the next start. This is not a bug.
 
 ## Ownership, paging and failures
 
