@@ -156,4 +156,5 @@ void mainui_config_load(MainUIConfig *out, const char *directory)
     out->show_recents = config_read(directory, ".showRecents", flag, sizeof flag);
     out->show_expert = config_read(directory, ".showExpert", flag, sizeof flag);
     out->context_ellipsis = !config_read(directory, ".noContextMenuEllipsis", flag, sizeof flag);
+    out->footer_alt = config_read(directory, ".mainuiFooterAltLayout", flag, sizeof flag);
 }

@@ -94,6 +94,9 @@ typedef struct {
     SDL_Color search_color;
     bool search_color_set;
     bool hide_icons, hide_hints;
+    /* The footer's alternative layout, from the configuration it was opened
+     * with (MainUIConfig.footer_alt): counter left, hints right, B first. */
+    bool footer_alt;
     /* Font size 0 in config.json: stock draws no text in that role. The font
      * itself still opens at the default size for dialogs and other screens. */
     bool hide_title_text, hide_hint_text, hide_grid_text, hide_expert_text;

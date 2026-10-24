@@ -93,6 +93,7 @@ On the right, keep important border artwork conservative: dense rows can approac
 
 Main-menu labels may wrap to two centred lines within a 136 px width. Dialog action labels use the theme's hint style.
 Hint text (footer hints, counter, dialog actions) uses `hint.font`; without it, the default font (Exo 2 Bold Italic, or the language font), as in stock, not `title.font`. It is drawn slanted with SDL_ttf's italic style, as in stock: an upright `hint.font` (a pixel font, say) leans, and a font that is italic already stays as it is.
+An empty file `.tmp_update/config/.mainuiFooterAltLayout` selects an alternative footer: the page counter, or a Favorites folder's game count, starts at x 20, and the hints end at x 620, B's before A's, each button beside its own action, OK and CANCEL too. Without it the footer is stock's. Hidden hints and hint text apply to both.
 Expert console labels use `grid.fontascii`, or without it the list font (`list.font`), at the `grid.grid3x4` size, in the font file's own style, as in stock; a blank `grid.font` that hides the Games labels does not hide them.
 Main-menu and Games console labels are drawn bold in the default font; a `grid.font` the theme names keeps its own weight. This differs from stock on purpose: stock makes them bold in any font, which visibly thickens pixel fonts.
 
