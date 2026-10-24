@@ -34,6 +34,7 @@ static bool image_path(char out[MAINUI_PATH_MAX], MainUICatalog *catalog,
     }
     const char *rom = NULL, *images = NULL, *saved = NULL;
     const char *root = catalog->sd;
+    bool folder = false;
     if (library) {
         if (selected >= library->visible_count || mainui_library_is_folder(library, selected)) {
             return false;
@@ -60,11 +61,15 @@ static bool image_path(char out[MAINUI_PATH_MAX], MainUICatalog *catalog,
             return false;
         }
         MainUIEntry *entry = mainui_catalog_entry(catalog, selected);
-        if (!entry || entry->directory) {
+        if (!entry) {
             return false;
         }
+        /* A folder, at any depth, shows <image folder>/<folder name>.png, as
+         * a ROM shows its name's. Its cache row keeps stock's imgpath, the
+         * folder's own path, so it is worked out here. */
+        folder = entry->directory;
         rom = entry->path;
-        saved = entry->artwork;
+        saved = folder ? NULL : entry->artwork;
         /* Search results name their source console's artwork directory. */
         images =
             entry->images && *entry->images ? entry->images : catalog->pages[catalog->depth].images;
@@ -89,7 +94,8 @@ static bool image_path(char out[MAINUI_PATH_MAX], MainUICatalog *catalog,
     if (size < 0 || size >= (int)sizeof png - 4) {
         return false;
     }
-    char *dot = strrchr(png, '.');
+    /* A ROM's name loses its extension; a folder's is kept whole. */
+    char *dot = folder ? NULL : strrchr(png, '.');
     if (dot) {
         *dot = 0;
     }

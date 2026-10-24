@@ -11,6 +11,8 @@ The reader selects `disp,path,imgpath,type`, filters by a bound `ppath`, and ord
 Identifiers are double-quoted and escaped; values are bound, including folder keys containing apostrophes. No SQL is assembled from an unescaped filename or value.
 
 ROM/art paths beginning `/mnt/SDCARD/` map to the chosen host SD root. Relative cached paths resolve from the system ROM root, including in nested folders. The original folder key is kept separately from the resolved host path. Empty image paths fall back to the configured image directory and ROM basename for thumbnails.
+A folder's cover is `<image directory>/<folder name>.png` at any depth, with its whole name, dots included. Its row keeps stock's imgpath, the folder's own path, so caches stay as stock writes them and the cover is worked out when it is shown.
+A folder and a ROM with the same name without its extension, such as `Zelda` and `Zelda.nes`, show the same `Zelda.png`, anywhere in the console: folders and ROMs in subfolders all use the one image directory, as two ROMs of the same name in different subfolders already share an image. Favorites folders show no cover.
 
 ## Ownership, paging and failures
 
