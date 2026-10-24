@@ -58,6 +58,17 @@ typedef struct {
      * moving between games and leaving Game Info, cleared with the theme. */
     MainUITitleLayout title_layouts[5];
     unsigned title_layout_clock;
+
+    /* Context menu labels as shown, shortened with "..." when too wide for
+     * the popup, for the last 6 drawn, cleared with the theme (dialogs.c). */
+    struct {
+        TTF_Font *font;
+        int room;
+        char label[512], shown[512];
+        unsigned used;
+    } context_labels[6];
+
+    unsigned context_label_clock;
     SDL_Surface *detail_default;
     bool detail_default_loaded;
     TTF_Font *battery_font;

@@ -24,6 +24,9 @@ typedef struct {
     int repeat_delay, repeat_interval;
     int scroll_status, scroll_delay, scroll_speed;
     bool case_sensitive, dynamic_favorite_position, show_recents, show_expert;
+    /* Shorten context menu labels too wide for the popup with "...". On
+     * unless .noContextMenuEllipsis exists. */
+    bool context_ellipsis;
 } MainUIConfig;
 
 /* Parse nullable file contents using the patcher's prefix/read-length rules.
