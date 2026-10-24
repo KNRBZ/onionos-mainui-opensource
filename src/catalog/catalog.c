@@ -397,6 +397,8 @@ static bool visit(MainUICatalogPage *page, const char *sd, const char *name, boo
             entry->raw_imgpath = duplicate_text(string(json, "imgpath", "Imgs"));
             entry->config = duplicate_text(scratch->config);
             entry->shortname = cJSON_IsNumber(shortname) && shortname->valueint != 0;
+            const cJSON *hidebios = cJSON_GetObjectItemCaseSensitive(json, "hidebios");
+            entry->hide_bios = cJSON_IsNumber(hidebios) && hidebios->valueint != 0;
             entry->launch = duplicate_text(scratch->launch);
             if (!entry->config || !entry->raw_rompath || !entry->raw_imgpath || !entry->launch) {
                 ok = false;
@@ -426,8 +428,11 @@ static bool visit(MainUICatalogPage *page, const char *sd, const char *name, boo
                       !compare_text(scratch->path, page->images, false))) {
         return true;
     }
-    if (!directory && (!allowed(name, page->extensions) ||
-                       cue_beside(scratch->path, page->extensions, scratch->resolved))) {
+    /* As stock: with hidebios, a file whose name starts with "[BIOS]" (as
+     * spelled, in any extension) is no game. */
+    if (!directory &&
+        ((page->hide_bios && !strncmp(name, "[BIOS]", 6)) || !allowed(name, page->extensions) ||
+         cue_beside(scratch->path, page->extensions, scratch->resolved))) {
         return true;
     }
     snprintf(scratch->label, sizeof scratch->label, "%s", name);
@@ -781,8 +786,8 @@ static bool saved_prefix(char out[MAINUI_PATH_MAX], const MainUICatalog *catalog
  * DRIVERS, a port's data) and empty folders are not listed; *found counts
  * the ROMs added below path. Its row is added after its subtree. */
 static bool cache_scan(sqlite3_stmt *insert, MainUICatalog *catalog, const char *root,
-                       const char *path, const char *extensions, const char *images, int depth,
-                       int *count, int *found, bool shortname, const char *rom_prefix,
+                       const char *path, const char *extensions, const char *images, bool hide_bios,
+                       int depth, int *count, int *found, bool shortname, const char *rom_prefix,
                        const char *image_prefix, char scratch[4][MAINUI_PATH_MAX])
 {
     if (depth >= MAINUI_STACK_MAX || mainui_cancelled(catalog->cancel)) {
@@ -795,6 +800,7 @@ static bool cache_scan(sqlite3_stmt *insert, MainUICatalog *catalog, const char 
     snprintf(page->path, sizeof page->path, "%s", path);
     snprintf(page->extensions, sizeof page->extensions, "%s", extensions);
     snprintf(page->images, sizeof page->images, "%s", images);
+    page->hide_bios = hide_bios;
     bool ok = scan(page, catalog->sd, 0, catalog->case_sensitive, catalog->cancel);
     mainui_count_add("scan-entries", page->count);
     char *parent = scratch[0], *relative = scratch[1], *pinyin = scratch[2], *image = scratch[3];
@@ -806,8 +812,8 @@ static bool cache_scan(sqlite3_stmt *insert, MainUICatalog *catalog, const char 
         MainUIEntry *entry = &page->entries[i];
         if (entry->directory) {
             int below = 0;
-            ok = cache_scan(insert, catalog, root, entry->path, extensions, images, depth + 1,
-                            count, &below, shortname, rom_prefix, image_prefix, scratch);
+            ok = cache_scan(insert, catalog, root, entry->path, extensions, images, hide_bios,
+                            depth + 1, count, &below, shortname, rom_prefix, image_prefix, scratch);
             if (!ok || !below) {
                 continue;
             }
@@ -1030,9 +1036,9 @@ static bool build_cache_locked(MainUICatalog *catalog, int system, bool replace,
     if (ok && !imported) {
         char(*scratch)[MAINUI_PATH_MAX] = malloc(4 * sizeof *scratch);
         int found = 0;
-        ok = scratch &&
-             cache_scan(insert, catalog, entry->path, entry->path, entry->extensions, entry->images,
-                        0, &count, &found, entry->shortname, rom_prefix, image_prefix, scratch);
+        ok = scratch && cache_scan(insert, catalog, entry->path, entry->path, entry->extensions,
+                                   entry->images, entry->hide_bios, 0, &count, &found,
+                                   entry->shortname, rom_prefix, image_prefix, scratch);
         free(scratch);
     }
     sqlite3_finalize(insert);
@@ -1403,6 +1409,7 @@ bool mainui_catalog_enter(MainUICatalog *catalog, int index)
     snprintf(next->extensions, sizeof next->extensions, "%s",
              catalog->depth ? page->extensions : e->extensions);
     snprintf(next->images, sizeof next->images, "%s", catalog->depth ? page->images : e->images);
+    next->hide_bios = catalog->depth ? page->hide_bios : e->hide_bios;
     /* Onion src/randomGamePicker/randomGamePicker.c derives both names from
      * the ROM root basename, which can differ from the emulator label.
      */

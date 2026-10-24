@@ -21,6 +21,9 @@ typedef struct {
     char *stored_path, *stored_image;
     char *icon, *icon_selected, *description, *launch;
     bool directory, shortname;
+    /* hidebios in the console's config.json: its scanned ROM lists leave out
+     * files whose names start with "[BIOS]", as stock does. */
+    bool hide_bios;
     /* Raw config spelling is part of stock saved-record identity. */
     char *raw_rompath, *raw_imgpath;
     char *config;
@@ -40,6 +43,7 @@ typedef struct {
     char cache_file[MAINUI_PATH_MAX], cache_table[512];
     char title[256];
     char path[MAINUI_PATH_MAX], extensions[1024], images[MAINUI_PATH_MAX];
+    bool hide_bios; /* the console's hidebios, for scans of this page */
     MainUIViewport view;
 } MainUICatalogPage;
 
