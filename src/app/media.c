@@ -164,6 +164,7 @@ static void load_text(MainUIMedia *m, const char *path)
         fclose(f);
     }
     m->text[n] = 0;
+    m->text_scroll = 0;
     m->mode = MAINUI_MEDIA_TEXT;
 }
 bool mainui_media_open(MainUIMedia *m, const char *rom_path)
@@ -262,6 +263,14 @@ void mainui_media_key(MainUIMedia *m, SDLKey key)
         if (key == SDLK_UP && m->count) m->selected = (m->selected + m->count - 1) % m->count;
         else if (key == SDLK_DOWN && m->count) m->selected = (m->selected + 1) % m->count;
         else if (key == SDLK_RETURN) open_item(m);
+    } else if (m->mode == MAINUI_MEDIA_TEXT && (key == SDLK_UP || key == SDLK_DOWN)) {
+        if (key == SDLK_UP && m->text_scroll > 0) m->text_scroll--;
+        else if (key == SDLK_DOWN) {
+            const char *line = m->text;
+            int lines = 0;
+            while (*line) { if (*line++ == '\n') lines++; }
+            if (lines > m->text_scroll + 15) m->text_scroll++;
+        }
     } else if (key == SDLK_RIGHT || key == SDLK_RETURN) {
         if (m->count) {
             m->selected = (m->selected + 1) % m->count;
@@ -319,8 +328,13 @@ void mainui_media_draw(MainUIMedia *m, MainUITheme *theme, SDL_Surface *screen)
         }
     } else if (m->mode == MAINUI_MEDIA_TEXT) {
         char *line = m->text, *end;
+        for (int skip = 0; skip < m->text_scroll && *line; skip++) {
+            line = strchr(line, '\n');
+            if (!line) break;
+            line++;
+        }
         int y = 70;
-        while (*line && y < 420) {
+        while (line && *line && y < 420) {
             end = strchr(line, '\n');
             if (end) *end = 0;
             char row[160];
