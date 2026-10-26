@@ -1346,7 +1346,8 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
     if (game_list && (key == SDLK_RCTRL || key == SDLK_RIGHT) && game_selected(ui)) {
         char rom_path[MAINUI_PATH_MAX];
         if (selected_rom_path(ui, rom_path)) {
-            mainui_media_open(&ui->media, rom_path);
+            if (key == SDLK_RIGHT) mainui_media_open_carousel(&ui->media, rom_path);
+            else mainui_media_open(&ui->media, rom_path);
             ui->letter_jump.active = false;
         }
         return;
