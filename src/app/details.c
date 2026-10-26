@@ -14,9 +14,34 @@ void mainui_details_close(MainUIDetails *details)
 
 void mainui_details_progress(MainUIDetails *details, Uint32 wait_ms)
 {
-    if (details->open && details->preview) {
+    if (!details->open) {
+        return;
+    }
+    if (details->preview) {
         mainui_preview_request_within(details->preview, details->catalog, details->library,
                                       details->index, wait_ms);
+    }
+    /* Snapshots wait for the artwork and must not animate. In the live UI,
+     * advance one wrapped description line at a gentle pace. The last page
+     * stays in place so the player can finish reading. */
+    if (wait_ms == MAINUI_PREVIEW_WAIT_FOREVER) {
+        return;
+    }
+    Uint32 now = SDL_GetTicks();
+    if (!details->auto_scroll_at) {
+        details->auto_scroll_at = now;
+        return;
+    }
+    if (now - details->auto_scroll_at < 450) {
+        return;
+    }
+    details->auto_scroll_at = now;
+    int last = details->line_count - details->lines_per_page;
+    if (last < 0) {
+        last = 0;
+    }
+    if (details->scroll_line < last) {
+        details->scroll_line++;
     }
 }
 
@@ -127,6 +152,7 @@ bool mainui_details_open(MainUIDetails *details, MainUICatalog *catalog,
     details->catalog = catalog;
     details->library = library;
     details->index = index;
+    details->auto_scroll_at = SDL_GetTicks();
     mainui_preview_request_within(details->preview, catalog, library, index, 0);
     int leading = library ? library->leading_folders
                           : catalog->pages[catalog->depth].folder_count + (catalog->depth > 1);
