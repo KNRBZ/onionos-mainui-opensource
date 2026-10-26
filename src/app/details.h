@@ -9,6 +9,7 @@
 typedef struct {
     bool open, favorite;
     int scroll_line, lines_per_page, line_count, ordinal, total;
+    Uint32 auto_scroll_at;
     char title[4096], system[4096], rom[MAINUI_PATH_MAX];
     MainUIMetadata metadata;
     MainUIPreview *preview;
