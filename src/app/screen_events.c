@@ -1319,7 +1319,7 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
     if (game_list && mainui_screen_search_key(ui, key)) {
         return;
     }
-    if (game_list && ui->catalog && (key == SDLK_LEFT || key == SDLK_RIGHT) &&
+    if (game_list && (key == SDLK_LEFT || key == SDLK_RIGHT) &&
         mainui_details_open(&ui->details, ui->catalog, ui->library, ui->favorites,
                             ui->view.selected, &ui->preview)) {
         ui->letter_jump.active = false;
