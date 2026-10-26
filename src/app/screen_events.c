@@ -1340,7 +1340,7 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
     bool game_list = !ui->home && !ui->apps && !ui->settings_open && !ui->language_open &&
                      !ui->context_open && ui->confirmation < 0 && !*ui->message_title &&
                      (ui->library || !ui->catalog || ui->catalog->depth);
-    if (game_list && key == SDLK_RCTRL && game_selected(ui)) {
+    if (game_list && (key == SDLK_RCTRL || key == SDLK_RIGHT) && game_selected(ui)) {
         char rom_path[MAINUI_PATH_MAX];
         if (selected_rom_path(ui, rom_path)) {
             mainui_media_open(&ui->media, rom_path);
@@ -1351,7 +1351,7 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
     if (game_list && mainui_screen_search_key(ui, key)) {
         return;
     }
-    if (game_list && (key == SDLK_LEFT || key == SDLK_RIGHT) &&
+    if (game_list && key == SDLK_LEFT &&
         mainui_details_open(&ui->details, ui->catalog, ui->library, ui->favorites,
                             ui->view.selected, &ui->preview)) {
         ui->letter_jump.active = false;
