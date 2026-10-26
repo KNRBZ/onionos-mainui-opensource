@@ -142,6 +142,7 @@ static void add_maps(MainUIMedia *m)
     }
     closedir(d);
     qsort(names, count, sizeof *names, map_name_compare);
+    char *xml = load_map_xml(m);
     for (size_t i = 0; i < count && m->count < MAINUI_MEDIA_ITEMS; i++) {
         char path[MAINUI_MEDIA_PATH], label[96];
         if (path_join(path, dir, names[i])) {
@@ -151,6 +152,7 @@ static void add_maps(MainUIMedia *m)
         }
         free(names[i]);
     }
+    free(xml);
     free(names);
 }
 static void load_text(MainUIMedia *m, const char *path)
