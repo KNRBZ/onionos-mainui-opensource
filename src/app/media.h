@@ -24,7 +24,7 @@ typedef struct {
     char game[256];
     char directory[MAINUI_MEDIA_PATH];
     MainUIMediaItem items[MAINUI_MEDIA_ITEMS];
-    int count, selected, page;
+    int count, selected, page, text_scroll;
     SDL_Surface *image;
     char text[16384];
     char status[256];
