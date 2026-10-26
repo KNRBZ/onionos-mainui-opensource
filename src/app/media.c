@@ -60,9 +60,10 @@ static bool map_xml_title(const MainUIMedia *m, const char *filename, char out[9
     char *xml = malloc(8u * 1024u * 1024u + 1);
     if (!xml) { fclose(f); return false; }
     size_t size = fread(xml, 1, 8u * 1024u * 1024u, f);
-    bool too_large = !feof(f) && !ferror(f);
+    bool read_error = ferror(f) != 0;
+    bool too_large = !read_error && size == 8u * 1024u * 1024u && fgetc(f) != EOF;
     fclose(f);
-    if (too_large || ferror(f)) { free(xml); return false; }
+    if (too_large || read_error) { free(xml); return false; }
     xml[size] = 0;
     char *match = strstr(xml, filename);
     bool found = false;
