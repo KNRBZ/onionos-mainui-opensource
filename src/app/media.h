@@ -20,6 +20,7 @@ typedef struct {
 } MainUIMediaItem;
 typedef struct {
     bool open;
+    bool compact; /* Escape/Left returns directly to the game list in the quick carousel. */
     MainUIMediaMode mode;
     char game[256];
     char directory[MAINUI_MEDIA_PATH];
