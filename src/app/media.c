@@ -51,20 +51,28 @@ static int map_name_compare(const void *a, const void *b)
 
 /* Read the optional title from the matching <map path="..." title="..."/>
  * element. XML is only metadata here; paths are never taken from the XML. */
-static bool map_xml_title(const MainUIMedia *m, const char *filename, char out[96])
+static char *load_map_xml(const MainUIMedia *m)
 {
-    char xml_path[MAINUI_MEDIA_PATH];
-    if (!path_join(xml_path, m->directory, "gamelist.xml")) return false;
-    FILE *f = fopen(xml_path, "rb");
-    if (!f) return false;
+    char path[MAINUI_MEDIA_PATH];
+    if (!path_join(path, m->directory, "gamelist.xml")) return NULL;
+    FILE *f = fopen(path, "rb");
+    if (!f) return NULL;
     char *xml = malloc(8u * 1024u * 1024u + 1);
-    if (!xml) { fclose(f); return false; }
+    if (!xml) { fclose(f); return NULL; }
     size_t size = fread(xml, 1, 8u * 1024u * 1024u, f);
     bool read_error = ferror(f) != 0;
     bool too_large = !read_error && size == 8u * 1024u * 1024u && fgetc(f) != EOF;
     fclose(f);
-    if (too_large || read_error) { free(xml); return false; }
+    if (too_large || read_error) { free(xml); return NULL; }
     xml[size] = 0;
+    return xml;
+}
+
+/* Read the optional title from the matching <map path="..." title="..."/>
+ * element. XML is only metadata here; paths are never taken from the XML. */
+static bool map_xml_title(const char *xml, const char *filename, char out[96])
+{
+    if (!xml) return false;
     char *match = strstr(xml, filename);
     bool found = false;
     if (match) {
@@ -75,7 +83,7 @@ static bool map_xml_title(const MainUIMedia *m, const char *filename, char out[9
             char *title = strstr(start, "title=");
             if (title && title < end) {
                 title += 6;
-                if (*title == '"' || *title == '\'') {
+                if (*title == '"' || *title == '\\'') {
                     char quote = *title++;
                     char *finish = memchr(title, quote, (size_t)(end - title));
                     if (finish && finish > title) {
@@ -83,9 +91,8 @@ static bool map_xml_title(const MainUIMedia *m, const char *filename, char out[9
                         if (n >= 96) n = 95;
                         memcpy(out, title, n);
                         out[n] = 0;
-                        /* Decode the five predefined XML entities commonly used in titles. */
                         const struct { const char *from, *to; } entities[] = {
-                            {"&amp;", "&"}, {"&quot;", "\\""}, {"&apos;", "'"},
+                            {"&amp;", "&"}, {"&quot;", "\\\""}, {"&apos;", "'"},
                             {"&lt;", "<"}, {"&gt;", ">"}};
                         char decoded[96];
                         snprintf(decoded, sizeof decoded, "%s", out);
@@ -113,7 +120,6 @@ static bool map_xml_title(const MainUIMedia *m, const char *filename, char out[9
             }
         }
     }
-    free(xml);
     return found;
 }
 
@@ -139,7 +145,7 @@ static void add_maps(MainUIMedia *m)
     for (size_t i = 0; i < count && m->count < MAINUI_MEDIA_ITEMS; i++) {
         char path[MAINUI_MEDIA_PATH], label[96];
         if (path_join(path, dir, names[i])) {
-            if (!map_xml_title(m, names[i], label))
+            if (!map_xml_title(xml, names[i], label))
                 snprintf(label, sizeof label, "Game Map %zu", i + 1);
             add(m, label, path, MEDIA_MAP);
         }
