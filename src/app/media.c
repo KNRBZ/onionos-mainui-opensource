@@ -109,7 +109,7 @@ static bool map_xml_title(const char *xml, const char *filename, char out[96])
                         memcpy(out, title, n);
                         out[n] = 0;
                         const struct { const char *from, *to; } entities[] = {
-                            {"&amp;", "&"}, {"&apos;", "'"},
+                            {"&amp;", "&"}, {"&apos;", "'"}, {"&quot;", "\""},
                             {"&lt;", "<"}, {"&gt;", ">"}};
                         char decoded[96];
                         snprintf(decoded, sizeof decoded, "%s", out);
@@ -223,6 +223,7 @@ static void open_item(MainUIMedia *m);
 bool mainui_media_open_carousel(MainUIMedia *m, const char *rom_path)
 {
     if (!mainui_media_open(m, rom_path)) return false;
+    m->compact = true;
     MainUIMediaItem compact[2];
     int count = 0;
     for (int i = 0; i < m->count; i++) {
@@ -278,7 +279,7 @@ void mainui_media_key(MainUIMedia *m, SDLKey key)
 {
     if (!m || !m->open) return;
     if (key == SDLK_ESCAPE || key == SDLK_LEFT) {
-        if (m->mode == MAINUI_MEDIA_MENU) mainui_media_close(m);
+        if (m->compact || m->mode == MAINUI_MEDIA_MENU) mainui_media_close(m);
         else { m->mode = MAINUI_MEDIA_MENU; m->status[0] = 0; }
         return;
     }
