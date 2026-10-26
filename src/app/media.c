@@ -141,7 +141,7 @@ static void add_maps(MainUIMedia *m)
         if (path_join(path, dir, names[i])) {
             if (!map_xml_title(m, names[i], label))
                 snprintf(label, sizeof label, "Game Map %zu", i + 1);
-            add(m, label, path, MEDIA_IMAGE);
+            add(m, label, path, MEDIA_MAP);
         }
         free(names[i]);
     }
