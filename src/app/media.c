@@ -9,7 +9,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-enum { MEDIA_IMAGE = 1, MEDIA_TEXT, MEDIA_INFO };
+enum { MEDIA_IMAGE = 1, MEDIA_TEXT, MEDIA_INFO, MEDIA_MAP };
 static bool regular(const char *path)
 {
     struct stat st;
@@ -202,7 +202,7 @@ static void open_item(MainUIMedia *m)
 {
     if (m->selected < 0 || m->selected >= m->count) return;
     MainUIMediaItem *item = &m->items[m->selected];
-    if (item->type == MEDIA_IMAGE) {
+    if (item->type == MEDIA_IMAGE || item->type == MEDIA_MAP) {
         SDL_Surface *loaded = IMG_Load(item->path);
         if (!loaded) {
             snprintf(m->status, sizeof m->status, "Cannot load image.");
@@ -273,9 +273,20 @@ void mainui_media_draw(MainUIMedia *m, MainUITheme *theme, SDL_Surface *screen)
     } else if (m->mode == MAINUI_MEDIA_IMAGE) {
         draw_image(screen, m->image);
         if (m->count) {
-            char counter[64];
-            snprintf(counter, sizeof counter, "%d/%d  %s", m->selected + 1, m->count,
-                     m->items[m->selected].label);
+            char counter[96];
+            MainUIMediaItem *current = &m->items[m->selected];
+            if (current->type == MEDIA_MAP) {
+                int page = 0, total = 0;
+                for (int i = 0; i < m->count; i++) {
+                    if (m->items[i].type == MEDIA_MAP) {
+                        total++;
+                        if (i <= m->selected) page++;
+                    }
+                }
+                snprintf(counter, sizeof counter, "%d/%d  %s", page, total, current->label);
+            } else {
+                snprintf(counter, sizeof counter, "%s", current->label);
+            }
             mainui_label(screen, theme->menu_font, theme->color, counter, 20, 438);
         }
     } else if (m->mode == MAINUI_MEDIA_TEXT) {
