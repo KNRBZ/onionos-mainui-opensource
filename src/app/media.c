@@ -201,6 +201,8 @@ bool mainui_media_open(MainUIMedia *m, const char *rom_path)
     m->selected = 0;
     return true;
 }
+static void open_item(MainUIMedia *m);
+
 bool mainui_media_open_carousel(MainUIMedia *m, const char *rom_path)
 {
     if (!mainui_media_open(m, rom_path)) return false;
@@ -217,7 +219,11 @@ bool mainui_media_open_carousel(MainUIMedia *m, const char *rom_path)
     if (count) memcpy(m->items, compact, (size_t)count * sizeof compact[0]);
     m->count = count;
     m->selected = 0;
-    if (!count) snprintf(m->status, sizeof m->status, "No screenshot or video found.");
+    if (!count) {
+        snprintf(m->status, sizeof m->status, "No screenshot or video found.");
+    } else {
+        open_item(m);
+    }
     return true;
 }
 
