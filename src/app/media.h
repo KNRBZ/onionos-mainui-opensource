@@ -30,7 +30,7 @@ typedef struct {
     char status[256];
 } MainUIMedia;
 
-bool mainui_media_open(MainUIMedia *media, const char *rom_path);
+bool mainui_media_open(MainUIMedia *media, const char *rom_path);\nbool mainui_media_open_carousel(MainUIMedia *media, const char *rom_path);
 void mainui_media_close(MainUIMedia *media);
 void mainui_media_key(MainUIMedia *media, SDLKey key);
 void mainui_media_draw(MainUIMedia *media, MainUITheme *theme, SDL_Surface *screen);
