@@ -167,8 +167,8 @@ void mainui_details_key(MainUIDetails *details, MainUICatalog *catalog,
                         MainUIViewport *view, int rows, SDLKey key)
 {
     /* B/Escape, Left and Right all return to the game list from Game Info.
-     * Right opens Game Info from the list, so its meaning is intentionally
-     * reversed while this screen is active. */
+     * Left or Right opens Game Info from the list; while this screen is active,
+     * either direction returns to the list. */
     if (key == SDLK_ESCAPE || key == SDLK_LEFT || key == SDLK_RIGHT) {
         mainui_details_close(details);
         return;
