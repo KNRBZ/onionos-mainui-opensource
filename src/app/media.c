@@ -92,7 +92,7 @@ static bool map_xml_title(const char *xml, const char *filename, char out[96])
                         memcpy(out, title, n);
                         out[n] = 0;
                         const struct { const char *from, *to; } entities[] = {
-                            {"&amp;", "&"}, {"&quot;", "\\\""}, {"&apos;", "'"},
+                            {"&amp;", "&"}, {"&apos;", "'"},
                             {"&lt;", "<"}, {"&gt;", ">"}};
                         char decoded[96];
                         snprintf(decoded, sizeof decoded, "%s", out);
