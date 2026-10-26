@@ -785,6 +785,7 @@ int mainui_teardown(MainUIApp *ui)
     mainui_languages_close(&ui->languages);
     mainui_language_close();
     mainui_details_close(&ui->details);
+    mainui_media_close(&ui->media);
     mainui_gamelist_metadata_close();
     mainui_preview_close(&ui->preview);
     mainui_menu_view_close(&ui->menu_view);
