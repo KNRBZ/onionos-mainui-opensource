@@ -43,22 +43,108 @@ static bool starts_map(const char *name, const char *stem)
     const char *p = name + n + 4;
     return *p >= '0' && *p <= '9';
 }
+static int map_name_compare(const void *a, const void *b)
+{
+    const char *const *x = a, *const *y = b;
+    return strcmp(*x, *y);
+}
+
+/* Read the optional title from the matching <map path="..." title="..."/>
+ * element. XML is only metadata here; paths are never taken from the XML. */
+static bool map_xml_title(const MainUIMedia *m, const char *filename, char out[96])
+{
+    char xml_path[MAINUI_MEDIA_PATH];
+    if (!path_join(xml_path, m->directory, "gamelist.xml")) return false;
+    FILE *f = fopen(xml_path, "rb");
+    if (!f) return false;
+    char *xml = malloc(8u * 1024u * 1024u + 1);
+    if (!xml) { fclose(f); return false; }
+    size_t size = fread(xml, 1, 8u * 1024u * 1024u, f);
+    bool too_large = !feof(f) && !ferror(f);
+    fclose(f);
+    if (too_large || ferror(f)) { free(xml); return false; }
+    xml[size] = 0;
+    char *match = strstr(xml, filename);
+    bool found = false;
+    if (match) {
+        char *start = match;
+        while (start > xml && *start != '<') start--;
+        char *end = strchr(match, '>');
+        if (*start == '<' && end) {
+            char *title = strstr(start, "title=");
+            if (title && title < end) {
+                title += 6;
+                if (*title == '"' || *title == '\'') {
+                    char quote = *title++;
+                    char *finish = memchr(title, quote, (size_t)(end - title));
+                    if (finish && finish > title) {
+                        size_t n = (size_t)(finish - title);
+                        if (n >= 96) n = 95;
+                        memcpy(out, title, n);
+                        out[n] = 0;
+                        /* Decode the five predefined XML entities commonly used in titles. */
+                        const struct { const char *from, *to; } entities[] = {
+                            {"&amp;", "&"}, {"&quot;", "\\""}, {"&apos;", "'"},
+                            {"&lt;", "<"}, {"&gt;", ">"}};
+                        char decoded[96];
+                        snprintf(decoded, sizeof decoded, "%s", out);
+                        out[0] = 0;
+                        for (size_t i = 0; decoded[i] && strlen(out) < 94;) {
+                            bool replaced = false;
+                            for (size_t j = 0; j < sizeof entities / sizeof entities[0]; j++) {
+                                size_t len = strlen(entities[j].from);
+                                if (!strncmp(decoded + i, entities[j].from, len)) {
+                                    strcat(out, entities[j].to);
+                                    i += len;
+                                    replaced = true;
+                                    break;
+                                }
+                            }
+                            if (!replaced) {
+                                size_t used = strlen(out);
+                                out[used] = decoded[i++];
+                                out[used + 1] = 0;
+                            }
+                        }
+                        found = out[0] != 0;
+                    }
+                }
+            }
+        }
+    }
+    free(xml);
+    return found;
+}
+
 static void add_maps(MainUIMedia *m)
 {
     char dir[MAINUI_MEDIA_PATH];
     if (!path_join(dir, m->directory, "media/maps")) return;
     DIR *d = opendir(dir);
     if (!d) return;
+    char **names = calloc(MAINUI_MEDIA_ITEMS, sizeof *names);
+    if (!names) { closedir(d); return; }
+    size_t count = 0;
     struct dirent *e;
-    while ((e = readdir(d)) != NULL && m->count < MAINUI_MEDIA_ITEMS) {
+    while ((e = readdir(d)) != NULL && count < MAINUI_MEDIA_ITEMS) {
         if (!starts_map(e->d_name, m->game)) continue;
         char path[MAINUI_MEDIA_PATH];
-        if (!path_join(path, dir, e->d_name)) continue;
-        char label[96];
-        snprintf(label, sizeof label, "Game Map %d", m->count + 1);
-        add(m, label, path, MEDIA_IMAGE);
+        if (!path_join(path, dir, e->d_name) || !regular(path)) continue;
+        names[count] = strdup(e->d_name);
+        if (names[count]) count++;
     }
     closedir(d);
+    qsort(names, count, sizeof *names, map_name_compare);
+    for (size_t i = 0; i < count && m->count < MAINUI_MEDIA_ITEMS; i++) {
+        char path[MAINUI_MEDIA_PATH], label[96];
+        if (path_join(path, dir, names[i])) {
+            if (!map_xml_title(m, names[i], label))
+                snprintf(label, sizeof label, "Game Map %zu", i + 1);
+            add(m, label, path, MEDIA_IMAGE);
+        }
+        free(names[i]);
+    }
+    free(names);
 }
 static void load_text(MainUIMedia *m, const char *path)
 {
