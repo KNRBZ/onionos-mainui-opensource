@@ -1295,6 +1295,9 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
         ui->held[pressed] = true;
     }
     prepare_launch(ui);
+    if (ui->media.open && screen_message_key(ui, key)) {
+        return;
+    }
     if (ui->media.open) {
         mainui_media_key(&ui->media, key);
         ui->cached_start = -1;
