@@ -147,8 +147,11 @@ void mainui_media_key(MainUIMedia *m, SDLKey key)
         if (key == SDLK_UP && m->count) m->selected = (m->selected + m->count - 1) % m->count;
         else if (key == SDLK_DOWN && m->count) m->selected = (m->selected + 1) % m->count;
         else if (key == SDLK_RETURN) open_item(m);
-    } else if (m->mode == MAINUI_MEDIA_IMAGE && (key == SDLK_RIGHT || key == SDLK_RETURN)) {
-        if (m->count) { m->selected = (m->selected + 1) % m->count; open_item(m); }
+    } else if (key == SDLK_RIGHT || key == SDLK_RETURN) {
+        if (m->count) {
+            m->selected = (m->selected + 1) % m->count;
+            open_item(m);
+        }
     }
 }
 static void draw_image(SDL_Surface *screen, SDL_Surface *image)
