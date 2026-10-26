@@ -413,7 +413,8 @@ int mainui_wait_interval(const MainUIApp *ui, Uint32 now)
 {
     /* Workers post completion events; only visible animation needs fast ticks.
      * Keep letter-jump responsive independently of the marquee frame rate. */
-    int interval = ui->letter_jump.active           ? 17
+    int interval = ui->details.open               ? 100
+                   : ui->letter_jump.active           ? 17
                    : mainui_marquee_moving(ui, now) ? MAINUI_MARQUEE_FRAME_MS
                    : ui->device_enabled             ? 500
                                                     : 5000;
