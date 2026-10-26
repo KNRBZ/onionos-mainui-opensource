@@ -45,8 +45,25 @@ static bool starts_map(const char *name, const char *stem)
 }
 static int map_name_compare(const void *a, const void *b)
 {
-    const char *const *x = a, *const *y = b;
-    return strcmp(*x, *y);
+    const unsigned char *x = (const unsigned char *)*(const char *const *)a;
+    const unsigned char *y = (const unsigned char *)*(const char *const *)b;
+    while (*x && *y) {
+        if (*x >= '0' && *x <= '9' && *y >= '0' && *y <= '9') {
+            unsigned long nx = 0, ny = 0;
+            while (*x >= '0' && *x <= '9') {
+                nx = nx * 10 + (*x++ - '0');
+            }
+            while (*y >= '0' && *y <= '9') {
+                ny = ny * 10 + (*y++ - '0');
+            }
+            if (nx != ny) return nx < ny ? -1 : 1;
+            continue;
+        }
+        if (*x != *y) return *x < *y ? -1 : 1;
+        x++;
+        y++;
+    }
+    return (*x != 0) - (*y != 0);
 }
 
 /* Read the optional title from the matching <map path="..." title="..."/>
