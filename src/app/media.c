@@ -83,7 +83,7 @@ static bool map_xml_title(const char *xml, const char *filename, char out[96])
             char *title = strstr(start, "title=");
             if (title && title < end) {
                 title += 6;
-                if (*title == '"' || *title == '\\'') {
+                if (*title == '"' || *title == '\'') {
                     char quote = *title++;
                     char *finish = memchr(title, quote, (size_t)(end - title));
                     if (finish && finish > title) {
