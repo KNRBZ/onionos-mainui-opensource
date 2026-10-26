@@ -192,6 +192,26 @@ bool mainui_media_open(MainUIMedia *m, const char *rom_path)
     m->selected = 0;
     return true;
 }
+bool mainui_media_open_carousel(MainUIMedia *m, const char *rom_path)
+{
+    if (!mainui_media_open(m, rom_path)) return false;
+    MainUIMediaItem compact[2];
+    int count = 0;
+    for (int i = 0; i < m->count; i++) {
+        if (!strcmp(m->items[i].label, "Screenshot") ||
+            !strcmp(m->items[i].label, "Video")) {
+            compact[count++] = m->items[i];
+            if (count == 2) break;
+        }
+    }
+    memset(m->items, 0, sizeof m->items);
+    if (count) memcpy(m->items, compact, (size_t)count * sizeof compact[0]);
+    m->count = count;
+    m->selected = 0;
+    if (!count) snprintf(m->status, sizeof m->status, "No screenshot or video found.");
+    return true;
+}
+
 void mainui_media_close(MainUIMedia *m)
 {
     if (!m) return;
