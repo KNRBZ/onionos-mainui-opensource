@@ -23,7 +23,7 @@ bool mainui_details_open(MainUIDetails *details, MainUICatalog *catalog,
                          const MainUILibrary *library, const MainUILibrary *favorites, int row,
                          MainUIPreview *preview);
 /* Up/Down wraps over games only and synchronizes the source list viewport.
- * B/Left closes. L2/R2 moves one description page. */
+ * B/Left/Right closes. L2/R2 moves one description page. */
 void mainui_details_key(MainUIDetails *details, MainUICatalog *catalog,
                         const MainUILibrary *library, const MainUILibrary *favorites,
                         MainUIViewport *view, int rows, SDLKey key);
