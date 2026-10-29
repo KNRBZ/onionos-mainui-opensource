@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 - 2026-10-29
+
+This version is considered stable. Back up the SD card before installing.
+
+### Game Media viewer
+
+* Open Game Info and scraped media from the game list, including box art, screenshots, gameplay videos, PDF manuals, text walkthroughs and game maps.
+* Read game details from Onion's `miyoogamelist.xml`; use optional map titles from `gamelist.xml`.
+* Play supported videos through Onion's FFplay installation and open PDF manuals with Onion's Green reader.
+* Add a quick screenshot/gameplay carousel, grouped image galleries, map navigation and page scrolling for walkthroughs.
+
+### Device and tests
+
+* Return from media viewers to the game list without losing the selected game.
+* Add unit coverage for media discovery, supported formats, map ordering and viewer navigation.
+* Document scraper output paths and the required FFplay and Green installations.
+
 ## 1.0.10 - 2026-10-24
 
 This version is considered stable.

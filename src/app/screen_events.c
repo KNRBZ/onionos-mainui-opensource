@@ -2,6 +2,7 @@
 #include "app/screen_events.h"
 #include "app/positions.h"
 #include "app/render.h"
+#include "app/startup.h"
 #include "catalog/saved_actions.h"
 #include "menus/favorite_context.h"
 #include "platform/audio.h"
@@ -15,6 +16,30 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+static void play_pending_media(MainUIApp *ui)
+{
+    if (ui->media.mode != MAINUI_MEDIA_PLAYBACK || ui->media.selected < 0 ||
+        ui->media.selected >= ui->media.count) {
+        return;
+    }
+    char path[MAINUI_MEDIA_PATH];
+    snprintf(path, sizeof path, "%s", ui->media.items[ui->media.selected].path);
+    if (mainui_media_selected_pdf(&ui->media))
+        mainui_play_pdf(ui, path);
+    else
+        mainui_play_video(ui, path);
+}
+
+static void media_key_repeat(MainUIApp *ui)
+{
+    bool fast = ui->media.open && ui->media.gallery_active && ui->media.mode == MAINUI_MEDIA_IMAGE;
+    if (fast == ui->media_fast_repeat)
+        return;
+    ui->media_fast_repeat = fast;
+    SDL_EnableKeyRepeat(fast ? 100 : ui->config.repeat_delay,
+                        fast ? 35 : ui->config.repeat_interval);
+}
 
 bool mainui_launch_tool(const char *directory, const char *sd, const MainUILaunchSource *source,
                         const char *label, const char *launch, int type, char error[256])
@@ -1128,13 +1153,16 @@ static bool selected_rom_path(MainUIApp *ui, char out[MAINUI_PATH_MAX])
     const char *rom = NULL;
     if (ui->library) {
         if (ui->view.selected < 0 || ui->view.selected >= ui->library->visible_count ||
-            mainui_library_is_folder(ui->library, ui->view.selected)) return false;
+            mainui_library_is_folder(ui->library, ui->view.selected))
+            return false;
         MainUILibraryItem *item = &ui->library->items[ui->library->visible[ui->view.selected]];
         rom = item->rom;
-    } else if (ui->catalog && ui->catalog->depth) {
+    }
+    else if (ui->catalog && ui->catalog->depth) {
         int index = mainui_browser_index(ui->catalog, ui->view.selected);
         MainUIEntry *entry = index >= 0 ? mainui_catalog_entry(ui->catalog, index) : NULL;
-        if (!entry || mainui_browser_folder(ui->catalog, ui->view.selected)) return false;
+        if (!entry || mainui_browser_folder(ui->catalog, ui->view.selected))
+            return false;
         rom = entry->path;
     }
     return rom && mainui_catalog_path(out, ui->sd, ui->sd, rom);
@@ -1300,6 +1328,9 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
     }
     if (ui->media.open) {
         mainui_media_key(&ui->media, key);
+        media_key_repeat(ui);
+        play_pending_media(ui);
+        media_key_repeat(ui);
         ui->cached_start = -1;
         ui->selected_at = SDL_GetTicks();
         return;
@@ -1346,8 +1377,11 @@ static void dispatch_key(MainUIApp *ui, SDL_Event *event)
     if (game_list && (key == SDLK_RCTRL || key == SDLK_RIGHT) && game_selected(ui)) {
         char rom_path[MAINUI_PATH_MAX];
         if (selected_rom_path(ui, rom_path)) {
-            if (key == SDLK_RIGHT) mainui_media_open_carousel(&ui->media, rom_path);
-            else mainui_media_open(&ui->media, rom_path);
+            if (key == SDLK_RIGHT)
+                mainui_media_open_carousel(&ui->media, rom_path);
+            else
+                mainui_media_open(&ui->media, rom_path);
+            play_pending_media(ui);
             ui->letter_jump.active = false;
         }
         return;

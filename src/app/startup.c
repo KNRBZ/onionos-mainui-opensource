@@ -11,15 +11,20 @@
 #include "platform/system_config.h"
 #include "platform/timing.h"
 #include <errno.h>
+#include <fcntl.h>
+#include <linux/input.h>
+#include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #ifdef MAINUI_ONION
 #include <fcntl.h>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
-#include <unistd.h>
 #endif
 
 #ifndef MAINUI_VERSION
@@ -321,6 +326,467 @@ int mainui_setup_video(MainUIApp *ui)
     SDL_EnableKeyRepeat(ui->config.repeat_delay, ui->config.repeat_interval);
     SDL_EnableUNICODE(1);
     return -1;
+}
+
+static bool environment_name(const char *entry, const char *name)
+{
+    size_t length = strlen(name);
+    return !strncmp(entry, name, length) && entry[length] == '=';
+}
+
+static char **video_environment(const char *directory, const char *libraries, const char *home,
+                                char **home_value, char **libraries_value, char **path_value)
+{
+    const char *old_libraries = getenv("LD_LIBRARY_PATH");
+    const char *old_path = getenv("PATH");
+    size_t count = 0;
+    for (char **entry = environ; entry && *entry; entry++) {
+        if (!environment_name(*entry, "HOME") && !environment_name(*entry, "LD_LIBRARY_PATH") &&
+            !environment_name(*entry, "PATH")) {
+            count++;
+        }
+    }
+    char **environment = calloc(count + 4, sizeof *environment);
+    size_t home_size = strlen(home) + sizeof "HOME=";
+    size_t library_size = sizeof "LD_LIBRARY_PATH=" + strlen(libraries) +
+                          (old_libraries && *old_libraries ? strlen(old_libraries) + 1 : 0);
+    size_t path_size = sizeof "PATH=" + strlen(directory) + 5 + (old_path ? strlen(old_path) : 0);
+    *home_value = malloc(home_size);
+    *libraries_value = malloc(library_size);
+    *path_value = malloc(path_size);
+    if (!environment || !*home_value || !*libraries_value || !*path_value) {
+        free(environment);
+        free(*home_value);
+        free(*libraries_value);
+        free(*path_value);
+        return NULL;
+    }
+    snprintf(*home_value, home_size, "HOME=%s", home);
+    snprintf(*libraries_value, library_size, "LD_LIBRARY_PATH=%s%s%s", libraries,
+             old_libraries && *old_libraries ? ":" : "",
+             old_libraries && *old_libraries ? old_libraries : "");
+    snprintf(*path_value, path_size, "PATH=%s/bin:%s", directory, old_path ? old_path : "");
+    size_t index = 0;
+    for (char **entry = environ; entry && *entry; entry++) {
+        if (!environment_name(*entry, "HOME") && !environment_name(*entry, "LD_LIBRARY_PATH") &&
+            !environment_name(*entry, "PATH")) {
+            environment[index++] = *entry;
+        }
+    }
+    environment[index++] = *home_value;
+    environment[index++] = *libraries_value;
+    environment[index] = *path_value;
+    return environment;
+}
+
+static bool wait_media_child(pid_t child, int *exit_code)
+{
+    if (child <= 0)
+        return false;
+    int status = 0, inputs[16];
+    for (int i = 0; i < (int)(sizeof inputs / sizeof inputs[0]); i++) {
+        char device[32];
+        snprintf(device, sizeof device, "/dev/input/event%d", i);
+        inputs[i] = open(device, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+    }
+    bool stop_sent = false, kill_sent = false, finished = false;
+    Uint32 stop_at = 0;
+    while (!finished) {
+        pid_t waited = waitpid(child, &status, WNOHANG);
+        if (waited == child || (waited < 0 && errno != EINTR)) {
+            finished = true;
+            if (waited == child)
+                *exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -2;
+            continue;
+        }
+        for (size_t device = 0; device < sizeof inputs / sizeof inputs[0]; device++) {
+            if (inputs[device] < 0)
+                continue;
+            struct input_event events[16];
+            ssize_t bytes = read(inputs[device], events, sizeof events);
+            if (bytes > 0) {
+                size_t count = (size_t)bytes / sizeof events[0];
+                for (size_t i = 0; i < count; i++) {
+                    bool back = events[i].code == KEY_LEFTCTRL || events[i].code == KEY_B ||
+                                events[i].code == KEY_ESC;
+                    if (events[i].type == EV_KEY && back && events[i].value != 2 && !stop_sent) {
+                        stop_sent = true;
+                        stop_at = SDL_GetTicks();
+                        kill(child, SIGTERM);
+                    }
+                }
+            }
+        }
+        if (stop_sent && !kill_sent && SDL_GetTicks() - stop_at > 500) {
+            kill_sent = true;
+            kill(child, SIGKILL);
+        }
+        poll(NULL, 0, 20);
+    }
+    for (size_t device = 0; device < sizeof inputs / sizeof inputs[0]; device++) {
+        if (inputs[device] >= 0)
+            close(inputs[device]);
+    }
+    return *exit_code == 0;
+}
+
+static bool run_ffplay(const char *sd, const char *path)
+{
+    struct VideoPaths {
+        char directory[4096], player[4096], libraries[4096];
+        char log_directory[4096], log_path[4096], position_file[4096], position_backup[4096];
+    } *paths = calloc(1, sizeof *paths);
+
+    if (!paths) {
+        return false;
+    }
+    if (snprintf(paths->directory, sizeof paths->directory, "%s/Emu/ffplay", sd) >=
+            (int)sizeof paths->directory ||
+        snprintf(paths->player, sizeof paths->player, "%s/bin/ffplay", paths->directory) >=
+            (int)sizeof paths->player ||
+        snprintf(paths->libraries, sizeof paths->libraries, "%s/libs", paths->directory) >=
+            (int)sizeof paths->libraries ||
+        snprintf(paths->log_directory, sizeof paths->log_directory, "%s/.tmp_update/logs", sd) >=
+            (int)sizeof paths->log_directory ||
+        snprintf(paths->log_path, sizeof paths->log_path, "%s/MainUI-video.log",
+                 paths->log_directory) >= (int)sizeof paths->log_path ||
+        snprintf(paths->position_file, sizeof paths->position_file, "%s/pos.cfg",
+                 paths->directory) >= (int)sizeof paths->position_file ||
+        snprintf(paths->position_backup, sizeof paths->position_backup, "%s/.MainUI-pos.cfg-backup",
+                 paths->directory) >= (int)sizeof paths->position_backup) {
+        free(paths);
+        return false;
+    }
+    struct stat info;
+    if (access(paths->player, X_OK) != 0 || stat(paths->libraries, &info) != 0 ||
+        !S_ISDIR(info.st_mode)) {
+        free(paths);
+        return false;
+    }
+    mkdir(paths->log_directory, 0755);
+    if (access(paths->position_backup, F_OK) == 0) {
+        unlink(paths->position_file);
+        rename(paths->position_backup, paths->position_file);
+    }
+    bool had_position_file = access(paths->position_file, F_OK) == 0;
+    bool position_hidden =
+        had_position_file && rename(paths->position_file, paths->position_backup) == 0;
+    int log = open(paths->log_path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (log < 0) {
+        snprintf(paths->log_path, sizeof paths->log_path, "%s", "/tmp/MainUI-video.log");
+        log = open(paths->log_path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    }
+    if (log >= 0) {
+        dprintf(log, "video=%s\nstart_seconds=0\nposcfg_hidden=%d\n", path, position_hidden);
+    }
+
+    char home_template[] = "/tmp/mainui-ffplay-XXXXXX";
+    char *home = mkdtemp(home_template);
+    if (!home) {
+        if (log >= 0)
+            close(log);
+        if (position_hidden)
+            rename(paths->position_backup, paths->position_file);
+        free(paths);
+        return false;
+    }
+    char *home_value = NULL, *libraries_value = NULL, *path_value = NULL;
+    char **environment = video_environment(paths->directory, paths->libraries, home, &home_value,
+                                           &libraries_value, &path_value);
+    if (!environment) {
+        if (log >= 0)
+            close(log);
+        rmdir(home);
+        if (position_hidden)
+            rename(paths->position_backup, paths->position_file);
+        free(paths);
+        return false;
+    }
+    char *const arguments[] = {paths->player, "-loglevel", "info", "-vf",        "hflip,vflip",
+                               "-ss",         "0",         "-i",   (char *)path, NULL};
+    struct sigaction reset = {.sa_handler = SIG_DFL};
+    sigemptyset(&reset.sa_mask);
+    sigset_t empty;
+    sigemptyset(&empty);
+    fflush(NULL);
+    FILE *governor = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "wb");
+    if (governor) {
+        fputs("performance\n", governor);
+        fclose(governor);
+    }
+    bool remove_stay_awake = access("/tmp/stay_awake", F_OK) != 0;
+    int stay_awake = open("/tmp/stay_awake", O_WRONLY | O_CREAT | O_CLOEXEC, 0644);
+    if (stay_awake >= 0)
+        close(stay_awake);
+    Uint32 started = SDL_GetTicks();
+    pid_t child = fork();
+    if (child == 0) {
+        sigaction(SIGCHLD, &reset, NULL);
+        sigaction(SIGINT, &reset, NULL);
+        sigaction(SIGTERM, &reset, NULL);
+        sigaction(SIGHUP, &reset, NULL);
+        sigprocmask(SIG_SETMASK, &empty, NULL);
+        if (chdir(home) != 0)
+            _exit(127);
+        if (log >= 0) {
+            if (dup2(log, STDOUT_FILENO) < 0 || dup2(log, STDERR_FILENO) < 0)
+                _exit(127);
+            close(log);
+        }
+        execve(paths->player, arguments, environment);
+        _exit(127);
+    }
+    if (log >= 0)
+        close(log);
+    int exit_code = -1;
+    bool success = wait_media_child(child, &exit_code);
+    log = open(paths->log_path, O_WRONLY | O_APPEND | O_CLOEXEC);
+    if (log >= 0) {
+        dprintf(log, "\n[MainUI] elapsed_ms=%u ffplay_exit=%d success=%d\n",
+                SDL_GetTicks() - started, exit_code, success);
+        close(log);
+    }
+    if (position_hidden) {
+        unlink(paths->position_file);
+        if (rename(paths->position_backup, paths->position_file) != 0) {
+            fprintf(stderr, "[video] Could not restore FFplay position file: %s\n",
+                    strerror(errno));
+        }
+    }
+    else if (!had_position_file) {
+        unlink(paths->position_file);
+    }
+    char position_file[4096];
+    if (snprintf(position_file, sizeof position_file, "%s/pos.cfg", home) <
+        (int)sizeof position_file) {
+        unlink(position_file);
+    }
+    rmdir(home);
+    free(environment);
+    free(home_value);
+    free(libraries_value);
+    free(path_value);
+    free(paths);
+    if (remove_stay_awake)
+        unlink("/tmp/stay_awake");
+    return success;
+}
+
+static bool run_green_pdf(const char *sd, const char *pdf)
+{
+    struct GreenPaths {
+        char system[4096], player[4096], libraries[4096], log_directory[4096], log[4096];
+    } *paths = calloc(1, sizeof *paths);
+
+    if (!paths)
+        return false;
+    if (snprintf(paths->system, sizeof paths->system, "%s/.tmp_update", sd) >=
+            (int)sizeof paths->system ||
+        snprintf(paths->player, sizeof paths->player, "%s/bin/green/green", paths->system) >=
+            (int)sizeof paths->player ||
+        snprintf(paths->libraries, sizeof paths->libraries, "%s/lib/parasyte", paths->system) >=
+            (int)sizeof paths->libraries ||
+        snprintf(paths->log_directory, sizeof paths->log_directory, "%s/.tmp_update/logs", sd) >=
+            (int)sizeof paths->log_directory ||
+        snprintf(paths->log, sizeof paths->log, "%s/MainUI-pdf.log", paths->log_directory) >=
+            (int)sizeof paths->log) {
+        free(paths);
+        return false;
+    }
+    struct stat info;
+    if (access(paths->player, X_OK) != 0 || stat(paths->libraries, &info) != 0 ||
+        !S_ISDIR(info.st_mode)) {
+        free(paths);
+        return false;
+    }
+    char *home = getenv("HOME");
+    char *home_value = NULL, *libraries_value = NULL, *path_value = NULL;
+    char **environment =
+        video_environment(paths->system, paths->libraries, home && *home ? home : paths->system,
+                          &home_value, &libraries_value, &path_value);
+    if (!environment) {
+        free(paths);
+        return false;
+    }
+    char *const arguments[] = {paths->player, (char *)pdf, NULL};
+    char previous_governor[32] = "";
+    FILE *governor = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "rb");
+    if (governor) {
+        if (fgets(previous_governor, sizeof previous_governor, governor)) {
+            previous_governor[strcspn(previous_governor, "\r\n")] = 0;
+        }
+        fclose(governor);
+    }
+    governor = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "wb");
+    if (governor) {
+        fputs("performance\n", governor);
+        fclose(governor);
+    }
+    mkdir(paths->log_directory, 0755);
+    int log = open(paths->log, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (log >= 0)
+        dprintf(log, "pdf=%s\n", pdf);
+    bool remove_stay_awake = access("/tmp/stay_awake", F_OK) != 0;
+    int stay_awake = open("/tmp/stay_awake", O_WRONLY | O_CREAT | O_CLOEXEC, 0644);
+    if (stay_awake >= 0)
+        close(stay_awake);
+    struct sigaction reset = {.sa_handler = SIG_DFL};
+    sigemptyset(&reset.sa_mask);
+    sigset_t empty;
+    sigemptyset(&empty);
+    fflush(NULL);
+    pid_t child = fork();
+    if (child == 0) {
+        sigaction(SIGCHLD, &reset, NULL);
+        sigaction(SIGINT, &reset, NULL);
+        sigaction(SIGTERM, &reset, NULL);
+        sigaction(SIGHUP, &reset, NULL);
+        sigprocmask(SIG_SETMASK, &empty, NULL);
+        if (chdir(paths->system) != 0)
+            _exit(127);
+        if (log >= 0 && (dup2(log, STDOUT_FILENO) < 0 || dup2(log, STDERR_FILENO) < 0))
+            _exit(127);
+        if (log >= 0)
+            close(log);
+        execve(paths->player, arguments, environment);
+        _exit(127);
+    }
+    if (log >= 0)
+        close(log);
+    int exit_code = -1;
+    bool success = wait_media_child(child, &exit_code);
+    if (*previous_governor) {
+        governor = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "wb");
+        if (governor) {
+            fprintf(governor, "%s\n", previous_governor);
+            fclose(governor);
+        }
+    }
+    log = open(paths->log, O_WRONLY | O_APPEND | O_CLOEXEC);
+    if (log >= 0) {
+        dprintf(log, "\n[MainUI] exit=%d success=%d\n", exit_code, success);
+        close(log);
+    }
+    free(environment);
+    free(home_value);
+    free(libraries_value);
+    free(path_value);
+    if (remove_stay_awake)
+        unlink("/tmp/stay_awake");
+    free(paths);
+    return success;
+}
+
+static bool resume_device_video(MainUIApp *ui)
+{
+#ifdef MAINUI_ONION
+    reset_framebuffer_pan("before video resume");
+#endif
+    if (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) {
+        fprintf(stderr, "[video] SDL video resume failed: %s\n", SDL_GetError());
+        return false;
+    }
+    ui->display = SDL_SetVideoMode(640, 480, 32, SDL_HWSURFACE);
+#ifdef MAINUI_ONION
+    if (ui->display)
+        reset_framebuffer_pan("video resume");
+#endif
+    ui->screen = ui->display;
+    if (ui->display) {
+        ui->screen = SDL_CreateRGBSurface(
+            SDL_SWSURFACE, 640, 480, ui->display->format->BitsPerPixel, ui->display->format->Rmask,
+            ui->display->format->Gmask, ui->display->format->Bmask, 0);
+    }
+    if (!ui->screen) {
+        fprintf(stderr, "[video] SDL display restore failed: %s\n", SDL_GetError());
+        return false;
+    }
+    SDL_WM_SetCaption("Open MainUI", NULL);
+    SDL_EnableKeyRepeat(ui->config.repeat_delay, ui->config.repeat_interval);
+    SDL_EnableUNICODE(1);
+    SDL_Event stale[16];
+    while (SDL_PeepEvents(stale, 16, SDL_GETEVENT, SDL_KEYDOWNMASK | SDL_KEYUPMASK) > 0) {
+    }
+    memset(ui->held, 0, sizeof ui->held);
+    ui->x_armed = ui->y_armed = ui->select_armed = ui->start_armed = false;
+    ui->select_brightness = false;
+    ui->return_latched = false;
+    return true;
+}
+
+void mainui_play_video(MainUIApp *ui, const char *path)
+{
+    if (!ui->real_device || !ui->sd) {
+        mainui_media_video_finished(&ui->media, false);
+        snprintf(ui->media.status, sizeof ui->media.status,
+                 "Video playback requires the handheld build.");
+        return;
+    }
+    bool resume_audio = mainui_audio_available();
+    if (ui->screen && ui->screen != ui->display)
+        SDL_FreeSurface(ui->screen);
+    ui->screen = ui->display = NULL;
+    mainui_audio_close();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+
+    bool success = run_ffplay(ui->sd, path);
+    bool video_ready = resume_device_video(ui);
+    if (video_ready && resume_audio) {
+        cJSON *system = mainui_system_read(ui->sd);
+        int volume = mainui_system_monitor_value(system, "bgmvol");
+        int audiofix = -1;
+        if (!mainui_device_setting_value(&ui->device_adapter, "audiofix", &audiofix)) {
+            audiofix = -1;
+        }
+        mainui_audio_open(ui->theme.directory, ui->theme.fallback, volume,
+                          audiofix == 0 ? 4096 : 1024);
+        cJSON_Delete(system);
+        mainui_audio_pause(ui->device_enabled && ui->device_status.sleeping == 1);
+    }
+    mainui_media_video_finished(&ui->media, success);
+    ui->cached_start = -1;
+    ui->idle_tick = false;
+    if (!video_ready) {
+        ui->running = false;
+        ui->status = 3;
+    }
+}
+
+void mainui_play_pdf(MainUIApp *ui, const char *path)
+{
+    if (!ui->real_device || !ui->sd) {
+        snprintf(ui->media.status, sizeof ui->media.status,
+                 "PDF Reader requires the handheld build.");
+        return;
+    }
+    bool resume_audio = mainui_audio_available();
+    if (ui->screen && ui->screen != ui->display)
+        SDL_FreeSurface(ui->screen);
+    ui->screen = ui->display = NULL;
+    mainui_audio_close();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+
+    run_green_pdf(ui->sd, path);
+    bool video_ready = resume_device_video(ui);
+    if (video_ready && resume_audio) {
+        cJSON *system = mainui_system_read(ui->sd);
+        int volume = mainui_system_monitor_value(system, "bgmvol");
+        int audiofix = -1;
+        if (!mainui_device_setting_value(&ui->device_adapter, "audiofix", &audiofix)) {
+            audiofix = -1;
+        }
+        mainui_audio_open(ui->theme.directory, ui->theme.fallback, volume,
+                          audiofix == 0 ? 4096 : 1024);
+        cJSON_Delete(system);
+        mainui_audio_pause(ui->device_enabled && ui->device_status.sleeping == 1);
+    }
+    mainui_media_video_finished(&ui->media, true);
+    ui->cached_start = -1;
+    ui->idle_tick = false;
+    if (!video_ready) {
+        ui->running = false;
+        ui->status = 3;
+    }
 }
 
 /* The return from a launch of Onion's Search tool (search, clear, or its

@@ -27,6 +27,8 @@ bool mainui_gamelist_import_control(sqlite3 *database, sqlite3_stmt *insert, con
  * The bounded XML subset is shared with import, not the database transaction. */
 typedef struct {
     char genre[4096], rating[8], description[4096];
+    char developer[256], publisher[256], release_date[64], players[32];
+    char name[256];
     bool found;
 } MainUIMetadata;
 

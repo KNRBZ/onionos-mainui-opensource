@@ -8,6 +8,8 @@
  * fully initialized app, after setup_render. */
 int mainui_setup_session(MainUIApp *ui, int argc, char **argv);
 int mainui_setup_video(MainUIApp *ui);
+void mainui_play_video(MainUIApp *ui, const char *path);
+void mainui_play_pdf(MainUIApp *ui, const char *path);
 void mainui_restore_session(MainUIApp *ui);
 void mainui_setup_render(MainUIApp *ui);
 int mainui_teardown(MainUIApp *ui);

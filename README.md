@@ -6,7 +6,7 @@ Written in C11 against SDL 1.2, the same libraries Onion already ships.
 
 Based on functionality from the [patched MainUI project](https://github.com/robcodedev/onionos-mainui-patcher).
 
-**Version 1.0.10.** It is considered stable, but keep a copy of your original SD card.
+**Version 1.1.0.** Stable release. Back up your SD card before installing and keep the original launcher available for recovery.
 
 ## Why
 
@@ -20,13 +20,13 @@ It also turns out to be smaller and quicker. Early hardware testing shows faster
 
 Supported devices: Mini Plus, Mini, and Mini Flip.
 
-Working: console and ROM browsing against the SQLite ROM caches, Recents, Favorites and folder editing, search, the Apps list, game launch and return, themes, the stock settings screens, and the `miyoogamelist.xml` metadata used for display names and box art.
+Working: console and ROM browsing against the SQLite ROM caches, Recents, Favorites and folder editing, search, the Apps list, game launch and return, themes, stock settings screens, `miyoogamelist.xml` metadata, and the Game Media viewer for scraped artwork, screenshots, maps, walkthroughs, videos and PDF manuals. Video playback requires FFplay installed at `Emu/ffplay/`; PDF viewing requires Onion's Green reader at `.tmp_update/bin/green/`.
 
 Tested on the Mini Plus, Mini v4 and Mini Flip, which behave the same. MainUI runs at 640x480 on every model. Switching between that and a game's own resolution on the Mini v4 and Mini Flip relies on Onion 4.5-dev fixes that are submitted but not merged yet. Bug reports naming the model and describing the SD card layout are the most useful thing you can send.
 
 If something goes wrong, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md), including how to enable logging and how to resolve an interrupted ROM deletion.
 
-How the cursor and the list window move, including where this differs from stock on purpose, is described in [docs/NAVIGATION.md](docs/NAVIGATION.md). The experimental game media viewer and its expected SD-card layout are documented in [docs/MEDIA_VIEWER.md](docs/MEDIA_VIEWER.md).
+How the cursor and the list window move, including where this differs from stock on purpose, is described in [docs/NAVIGATION.md](docs/NAVIGATION.md). Scraper output, media paths, player requirements and controls are documented in [docs/MEDIA_VIEWER.md](docs/MEDIA_VIEWER.md).
 
 Some newer labels (folder actions, Tweaks, the About device rows) appear in English regardless of the selected language, because their translation IDs do not exist in Onion's language files yet. See [lang/README.md](lang/README.md).
 Arabic and Bengali need a font and a text-shaping library that Open MainUI does not include; see [docs/THEMES.md](docs/THEMES.md#fonts-and-languages).

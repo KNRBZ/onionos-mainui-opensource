@@ -25,6 +25,7 @@ static const Suite suites[] = {
     {"launch", mainui_suite_launch},
     {"letter_jump", mainui_suite_letter_jump},
     {"menu", mainui_suite_menu},
+    {"media", mainui_suite_media},
     {"name_input", mainui_suite_name_input},
     {"options", mainui_suite_options},
     {"screen_events", mainui_suite_screen_events},

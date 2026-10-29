@@ -25,7 +25,7 @@ OPT        ?= -O1 -g
 STD        ?= -std=c11
 WARN       ?= -Wall -Wextra -Wshadow -Wredundant-decls -Werror
 PYTHON     ?= python3
-VERSION    ?= 1.0.10
+VERSION    ?= 1.1.0
 
 SDL_CFLAGS ?= $(shell sdl-config --cflags 2>/dev/null)
 SDL_LIBS   ?= $(shell sdl-config --libs 2>/dev/null) -lSDL_image -lSDL_ttf
@@ -55,8 +55,9 @@ FAULT_OBJ  := $(LIB_SRC:%.c=$(O)/fault/%.o)
 UNIT_SRC   := tests/main.c \
               tests/test_context.c tests/test_core.c \
               tests/test_input.c tests/test_launch.c tests/test_letter_jump.c \
-              tests/test_menu.c tests/test_name_input.c tests/test_options.c \
-              tests/test_screen_events.c tests/test_state.c tests/test_timing.c
+			  tests/test_menu.c tests/test_name_input.c tests/test_options.c \
+			  tests/test_screen_events.c tests/test_state.c tests/test_timing.c \
+			  tests/test_media.c
 UNIT_OBJ   := $(UNIT_SRC:%.c=$(O)/obj/%.o)
 
 # Harnesses driven by tests/integration/*.py, which build an SD tree first and

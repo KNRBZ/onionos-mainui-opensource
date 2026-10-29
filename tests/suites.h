@@ -11,6 +11,7 @@ int mainui_suite_input(void);
 int mainui_suite_launch(void);
 int mainui_suite_letter_jump(void);
 int mainui_suite_menu(void);
+int mainui_suite_media(void);
 int mainui_suite_name_input(void);
 int mainui_suite_options(void);
 int mainui_suite_screen_events(void);

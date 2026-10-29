@@ -32,16 +32,27 @@ void mainui_details_progress(MainUIDetails *details, Uint32 wait_ms)
         details->auto_scroll_at = now;
         return;
     }
-    if (now - details->auto_scroll_at < 450) {
-        return;
-    }
-    details->auto_scroll_at = now;
     int last = details->line_count - details->lines_per_page;
     if (last < 0) {
         last = 0;
     }
-    if (details->scroll_line < last) {
+    if ((Sint32)(now - details->auto_scroll_at) >= 0 && details->scroll_line < last) {
         details->scroll_line++;
+        details->auto_scroll_at = now + 1800;
+    }
+    Uint32 elapsed = now - details->scroll_updated_at;
+    details->scroll_updated_at = now;
+    float target = (float)details->scroll_line;
+    float distance = target - details->scroll_position;
+    float movement = (float)elapsed / 1800.0f;
+    if (distance > movement) {
+        details->scroll_position += movement;
+    }
+    else if (distance < -movement) {
+        details->scroll_position -= movement;
+    }
+    else {
+        details->scroll_position = target;
     }
 }
 
@@ -152,7 +163,8 @@ bool mainui_details_open(MainUIDetails *details, MainUICatalog *catalog,
     details->catalog = catalog;
     details->library = library;
     details->index = index;
-    details->auto_scroll_at = SDL_GetTicks();
+    details->auto_scroll_at = SDL_GetTicks() + 1400;
+    details->scroll_updated_at = SDL_GetTicks();
     mainui_preview_request_within(details->preview, catalog, library, index, 0);
     int leading = library ? library->leading_folders
                           : catalog->pages[catalog->depth].folder_count + (catalog->depth > 1);
@@ -226,6 +238,49 @@ static bool prefix_fits(TTF_Font *font, const char *start, const char *end, char
     out[size] = 0;
     int measured = 0;
     return TTF_SizeUTF8(font, out, &measured, NULL) >= 0 && measured <= width;
+}
+
+static __attribute__((noinline)) void detail_line(SDL_Surface *screen, MainUITheme *theme,
+                                                  TTF_Font *font, const char *text, int x, int y,
+                                                  int width, bool justify)
+{
+    char copy[4096];
+    snprintf(copy, sizeof copy, "%s", text);
+    char *words[256];
+    int widths[256], count = 0, words_width = 0;
+    char *cursor = copy;
+    while (*cursor && count < (int)(sizeof words / sizeof words[0])) {
+        while (*cursor == ' ')
+            cursor++;
+        if (!*cursor)
+            break;
+        words[count] = cursor;
+        while (*cursor && *cursor != ' ')
+            cursor++;
+        if (*cursor)
+            *cursor++ = 0;
+        if (TTF_SizeUTF8(font, words[count], &widths[count], NULL) < 0) {
+            mainui_label(screen, font, theme->color, text, x, y);
+            return;
+        }
+        words_width += widths[count++];
+    }
+    if (!justify || count < 2) {
+        mainui_label(screen, font, theme->color, text, x, y);
+        return;
+    }
+    int gaps = count - 1, extra = width - words_width;
+    if (extra < 0)
+        extra = 0;
+    int gap = extra / gaps, remainder = extra % gaps;
+    int left = x;
+    for (int i = 0; i < count; i++) {
+        SDL_Surface *surface = mainui_theme_text(theme, font, words[i], theme->color);
+        mainui_blit(screen, surface, left, y);
+        left += widths[i];
+        if (i < gaps)
+            left += gap + (i < remainder);
+    }
 }
 
 static const char *line(TTF_Font *font, const char *text, char out[4096], int width)
@@ -323,6 +378,66 @@ static const MainUITitleLayout *title_lines(MainUITheme *theme, const char *titl
     return layout;
 }
 
+static void detail_footer_value(SDL_Surface *screen, MainUITheme *theme, TTF_Font *font,
+                                const char *label, const char *value, int x, int y, int width)
+{
+    char text[512];
+    size_t used = strlen(label);
+    if (used >= sizeof text)
+        return;
+    memcpy(text, label, used);
+    text[used] = 0;
+    const char *cursor = value;
+    while (*cursor) {
+        const char *next = next_character(cursor);
+        size_t bytes = (size_t)(next - cursor);
+        if (used + bytes + 4 >= sizeof text)
+            break;
+        memcpy(text + used, cursor, bytes);
+        text[used + bytes] = 0;
+        int measured = 0;
+        if (TTF_SizeUTF8(font, text, &measured, NULL) < 0 || measured > width - 18)
+            break;
+        used += bytes;
+        cursor = next;
+    }
+    if (*cursor && used + 3 < sizeof text) {
+        memcpy(text + used, "...", 4);
+    }
+    mainui_label(screen, font, theme->hint_color, text, x, y);
+}
+
+static void detail_footer_value_right(SDL_Surface *screen, MainUITheme *theme, TTF_Font *font,
+                                      const char *label, const char *value, int x, int y, int width)
+{
+    char text[128];
+    snprintf(text, sizeof text, "%s%s", label, value);
+    int measured = 0;
+    if (TTF_SizeUTF8(font, text, &measured, NULL) < 0 || measured > width) {
+        detail_footer_value(screen, theme, font, label, value, x, y, width);
+        return;
+    }
+    mainui_label(screen, font, theme->hint_color, text, x + width - measured, y);
+}
+
+static void details_metadata_footer(MainUIDetails *details, MainUITheme *theme, SDL_Surface *screen)
+{
+    SDL_Rect strip = {0, 420, 640, 60};
+    if (theme->background && theme->background->w >= 640 && theme->background->h >= 480) {
+        SDL_BlitSurface(theme->background, &strip, screen, &strip);
+    }
+    else {
+        SDL_FillRect(screen, &strip, SDL_MapRGB(screen->format, 24, 24, 24));
+    }
+    TTF_Font *font = theme->detail_font;
+    detail_footer_value(screen, theme, font, "Dev: ", details->metadata.developer, 16, 423, 242);
+    detail_footer_value(screen, theme, font, "Genre: ", details->metadata.genre, 274, 423, 350);
+    detail_footer_value(screen, theme, font, "Pub: ", details->metadata.publisher, 16, 447, 242);
+    detail_footer_value(screen, theme, font, "Players: ", details->metadata.players, 274, 447, 150);
+    detail_footer_value_right(screen, theme, font, "Date: ", details->metadata.release_date, 430,
+                              447, 194);
+}
+
 void mainui_details_draw(MainUIDetails *details, MainUITheme *theme, SDL_Surface *screen)
 {
     SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 24, 24, 24));
@@ -341,20 +456,9 @@ void mainui_details_draw(MainUIDetails *details, MainUITheme *theme, SDL_Surface
     }
     SDL_Rect clip = {274, 98, 360, 322};
     SDL_SetClipRect(screen, &clip);
-    char system[4096];
-    const char *begin = details->system;
-    while (*begin == ' ') {
-        begin++;
-    }
-    snprintf(system, sizeof system, "%s", begin);
-    size_t end = strlen(system);
-    while (end && system[end - 1] == ' ') {
-        system[--end] = 0;
-    }
-    mainui_label(screen, theme->menu_font, theme->color, system, 274, 98);
     char wrapped[4096];
     const char *text = details->title;
-    int y = 130, height = TTF_FontHeight(theme->title_font) * 7 / 8, count = 0;
+    int y = 98, height = TTF_FontHeight(theme->title_font) * 7 / 8, count = 0;
     if (height < 20) {
         height = 20;
     }
@@ -376,12 +480,7 @@ void mainui_details_draw(MainUIDetails *details, MainUITheme *theme, SDL_Surface
         mainui_label(screen, theme->title_font, theme->color, wrapped, 274, y);
         y += height;
     }
-    char summary[4120];
-    snprintf(summary, sizeof summary, "%s%s%s", details->metadata.genre,
-             *details->metadata.genre && *details->metadata.rating ? " | " : "",
-             details->metadata.rating);
-    /* meta_draw: 14px after title, font height + 2px between lines,
-     * then 5px after the summary before the description. */
+    /* Leave the content area below the title for the scrollable description. */
     y += 14;
     int metadata_height = TTF_FontHeight(theme->detail_font);
     if (metadata_height < 10) {
@@ -390,23 +489,12 @@ void mainui_details_draw(MainUIDetails *details, MainUITheme *theme, SDL_Surface
     if (metadata_height > 40) {
         metadata_height = 40;
     }
-    bool summary_drawn = false;
-    text = summary;
-    while (*text && y + metadata_height <= 420) {
-        text = line(theme->detail_font, text, wrapped, 360);
-        mainui_label(screen, theme->detail_font, theme->color, wrapped, 274, y);
-        y += metadata_height + 2;
-        summary_drawn = true;
-    }
-    if (summary_drawn) {
-        y += 5;
-    }
     height = metadata_height + 2;
     int visible = (420 - y + 2) / height;
     if (visible < 1) {
         details->lines_per_page = 0;
         SDL_SetClipRect(screen, NULL);
-        mainui_draw_footer(screen, theme, 0, -1);
+        details_metadata_footer(details, theme, screen);
         return;
     }
     text = details->metadata.description;
@@ -417,22 +505,31 @@ void mainui_details_draw(MainUIDetails *details, MainUITheme *theme, SDL_Surface
     }
     details->line_count = count;
     details->lines_per_page = visible;
-    int start = details->scroll_line;
+    int start = (int)details->scroll_position;
     /* Patcher meta_input clamps to line_count - lines_per_page, so the final
      * page remains full even when its last advance is less than one page. */
     int last = count > visible ? count - visible : 0;
     if (start > last) {
         start = last;
     }
-    details->scroll_line = start;
+    if (details->scroll_line > last) {
+        details->scroll_line = last;
+    }
+    if (details->scroll_position > last) {
+        details->scroll_position = (float)last;
+    }
+    int offset = (int)((details->scroll_position - start) * height);
+    SDL_Rect description_clip = {274, (Sint16)y, 360, (Sint16)(420 - y)};
+    SDL_SetClipRect(screen, &description_clip);
     text = details->metadata.description;
-    for (int i = 0; *text && i < start + visible; i++) {
-        text = line(theme->detail_font, text, wrapped, 360);
+    for (int i = 0; *text && i <= start + visible; i++) {
+        const char *next = line(theme->detail_font, text, wrapped, 360);
         if (i >= start) {
-            mainui_label(screen, theme->detail_font, theme->color, wrapped, 274,
-                         y + (i - start) * height);
+            detail_line(screen, theme, theme->detail_font, wrapped, 274,
+                        y + (i - start) * height - offset, 360, *next && next[-1] != '\n');
         }
+        text = next;
     }
     SDL_SetClipRect(screen, NULL);
-    mainui_draw_footer(screen, theme, 0, -1);
+    details_metadata_footer(details, theme, screen);
 }

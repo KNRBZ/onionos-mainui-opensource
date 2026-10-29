@@ -413,8 +413,14 @@ int mainui_wait_interval(const MainUIApp *ui, Uint32 now)
 {
     /* Workers post completion events; only visible animation needs fast ticks.
      * Keep letter-jump responsive independently of the marquee frame rate. */
-    int interval = ui->details.open               ? 100
-                   : ui->letter_jump.active           ? 17
+    bool game_info_scrolling =
+        ui->media.open && ui->media.mode == MAINUI_MEDIA_GAME_INFO &&
+        ui->media.game_info_page == 0 && ui->media.game_info_scroll_last > 0 &&
+        (ui->media.game_info_scroll_line < ui->media.game_info_scroll_last ||
+         ui->media.game_info_scroll_position + 0.01f < ui->media.game_info_scroll_line);
+    int interval = ui->details.open                 ? 100
+                   : ui->letter_jump.active         ? 17
+                   : game_info_scrolling            ? 17
                    : mainui_marquee_moving(ui, now) ? MAINUI_MARQUEE_FRAME_MS
                    : ui->device_enabled             ? 500
                                                     : 5000;

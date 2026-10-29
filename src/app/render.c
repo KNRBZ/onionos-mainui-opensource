@@ -240,8 +240,8 @@ static bool idle_unchanged(const MainUIApp *ui, Uint32 now, Uint32 repaint_ms)
                        (ui->device_job.operation == 0 && !ui->device_job.queued_operation);
     return ui->idle_tick && !ui->snapshot && !ui->input_script && !ui->letter_jump.active &&
            !ui->catalog_job.thread && status_only && !ui->about_job.thread && !ui->preview.thread &&
-           !ui->preview.pending && !ui->settings_open && !ui->settings_page.open && !ui->media.open &&
-           !ui->language_open && !ui->details.open && !ui->name_input.open &&
+           !ui->preview.pending && !ui->settings_open && !ui->settings_page.open &&
+           !ui->media.open && !ui->language_open && !ui->details.open && !ui->name_input.open &&
            !ui->search_keyboard && !ui->context_open && ui->confirmation < 0 &&
            !*ui->message_title && !ui->launch_pending && now - ui->presented_at < repaint_ms &&
            ui->presented_battery == ui->theme.battery_percent &&

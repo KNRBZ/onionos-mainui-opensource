@@ -3,8 +3,8 @@
 #define MAINUI_APP_CONTEXT_H
 #include "app/catalog_job.h"
 #include "app/details.h"
-#include "app/media.h"
 #include "app/device_job.h"
+#include "app/media.h"
 #include "app/settings_page.h"
 #include "catalog/favorite_edit.h"
 #include "core/letter_jump.h"
@@ -29,6 +29,7 @@ typedef struct {
     MainUITheme theme;
     MainUIDetails details;
     MainUIMedia media;
+    bool media_fast_repeat;
     MainUICatalogJob catalog_job;
     MainUIDeviceJob device_job;
     MainUIAboutJob about_job;

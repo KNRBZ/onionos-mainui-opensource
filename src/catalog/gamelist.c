@@ -38,11 +38,11 @@ typedef struct {
     sqlite3 *database;
     sqlite3_stmt *insert, *folder;
     const char *sd, *root, *saved_root;
-    char values[6][MAINUI_PATH_MAX];
-    size_t lengths[6];
-    bool seen[6];
+    char values[10][MAINUI_PATH_MAX];
+    size_t lengths[10];
+    bool seen[10];
     /* A value cut at its buffer's end: fine for text, never for a path. */
-    bool overflow[6];
+    bool overflow[10];
     MainUIMetadata *metadata;
     MetadataRecord *index;
     uint32_t record_start, record_end;
@@ -464,6 +464,28 @@ static bool metadata_game(Import *import)
     result->found = true;
     strcpy(result->genre, import->values[3]);
     strcpy(result->description, import->values[5]);
+    snprintf(result->name, sizeof result->name, "%.*s", (int)sizeof result->name - 1,
+             import->values[1]);
+    snprintf(result->developer, sizeof result->developer, "%.*s", (int)sizeof result->developer - 1,
+             import->values[6]);
+    snprintf(result->publisher, sizeof result->publisher, "%.*s", (int)sizeof result->publisher - 1,
+             import->values[7]);
+    const char *release_date = import->values[8];
+    bool compact_date = strlen(release_date) >= 8;
+    for (int i = 0; compact_date && i < 8; i++) {
+        compact_date = release_date[i] >= '0' && release_date[i] <= '9';
+    }
+    if (compact_date) {
+        snprintf(result->release_date, sizeof result->release_date, "%c%c.%c%c.%c%c%c%c",
+                 release_date[6], release_date[7], release_date[4], release_date[5],
+                 release_date[0], release_date[1], release_date[2], release_date[3]);
+    }
+    else {
+        snprintf(result->release_date, sizeof result->release_date, "%.*s",
+                 (int)sizeof result->release_date - 1, release_date);
+    }
+    snprintf(result->players, sizeof result->players, "%.*s", (int)sizeof result->players - 1,
+             import->values[9]);
     const char *rating = import->values[4];
     while (isspace((unsigned char)*rating)) {
         rating++;
@@ -776,6 +798,18 @@ static bool parse(Import *import, const char *cursor)
             }
             else if (import->metadata && !strcmp(tag, "desc")) {
                 opened = 5;
+            }
+            else if (import->metadata && !strcmp(tag, "developer")) {
+                opened = 6;
+            }
+            else if (import->metadata && !strcmp(tag, "publisher")) {
+                opened = 7;
+            }
+            else if (import->metadata && !strcmp(tag, "releasedate")) {
+                opened = 8;
+            }
+            else if (import->metadata && !strcmp(tag, "players")) {
+                opened = 9;
             }
             if (opened >= 0) {
                 /* A repeated field keeps its first value. */

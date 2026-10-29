@@ -332,6 +332,16 @@ static void wake_intervals(MainUIApp *ui)
     assert(mainui_wait_interval(ui, 1000) == 5000);
     ui->device_enabled = true;
     assert(mainui_wait_interval(ui, 1000) == 500);
+    ui->media.open = true;
+    ui->media.mode = MAINUI_MEDIA_GAME_INFO;
+    ui->media.game_info_scroll_last = 5;
+    assert(mainui_wait_interval(ui, 1000) == 17);
+    ui->media.game_info_scroll_line = 5;
+    ui->media.game_info_scroll_position = 4.5f;
+    assert(mainui_wait_interval(ui, 1000) == 17);
+    ui->media.game_info_scroll_position = 5.0f;
+    assert(mainui_wait_interval(ui, 1000) == 500);
+    ui->media = (MainUIMedia){0};
     /* Worker handles are only inspected for presence by these functions. */
     ui->device_job.thread = (SDL_Thread *)ui;
     ui->preview.thread = (SDL_Thread *)ui;
